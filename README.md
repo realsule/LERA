@@ -1,16 +1,78 @@
-# React + Vite
+🏟️ LERA — Local Events and Reviews App
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+LERA is a sophisticated community-driven platform designed to bridge the gap between event organizers and local attendees. It empowers users to discover, book, and review local experiences while providing organizers with a robust management dashboard.
 
-Currently, two official plugins are available:
+Goal: Streamline local event discovery and foster community engagement through transparent reviews.Mission: "Connecting people to experiences that matter, right in their backyard."
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Babel](https://babeljs.io/) (or [oxc](https://oxc.rs) when used in [rolldown-vite](https://vite.dev/guide/rolldown)) for Fast Refresh
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/) for Fast Refresh
+🌍 Overview
 
-## React Compiler
+LERA allows users to:
 
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
+   Discover: Browse localized event listings with real-time filtering.
+   Organize: Create and manage events via a dedicated Organizer Panel.
+   Engage: Write reviews, rate experiences, and select tickets.
+   Administer: Full-scale management of users and events via the Admin Panel.
+   
+🧠 Tech Stack
 
-## Expanding the ESLint configuration
+| **Frontend** | React (Vite) | 
+| **Backend** | Python (Flask) |
+| **State** | Context API | 
+| **Styling** | CSS3 / Tailwind |
 
-If you are developing a production application, we recommend using TypeScript with type-aware lint rules enabled. Check out the [TS template](https://github.com/vitejs/vite/tree/main/packages/create-vite/template-react-ts) for information on how to integrate TypeScript and [`typescript-eslint`](https://typescript-eslint.io) in your project.
+
+🧩 Setup Instructions
+
+
+## 🧩 Setup Instructions
+
+Follow these steps to get your local development environment running.
+
+<summary><b>Step 1: Clone the Repository</b></summary>
+
+```bash
+git clone [https://github.com/realsule/lera.git](https://github.com/realsule/lera.git)
+cd LERA
+</details>
+
+<details> <summary><b>Step 2: Frontend Setup (React + Vite)</b></summary>
+
+Navigate to the client directory and install dependencies:
+
+Bash
+
+cd client
+npm install
+npm run dev
+Note: The frontend will be available at http://localhost:5173
+
+</details>
+
+<details> <summary><b>Step 3: Backend Setup (Python)</b></summary>
+
+Activate your environment and install the required packages:
+
+Bash
+
+# Move to the backend folder (suggested structure)
+cd ../backend
+
+# Activate Virtual Environment
+source venv/bin/activate  # On Windows use: venv\Scripts\activate
+
+# Install requirements
+pip install -r requirements.txt
+
+# Start the server
+python app.py
+```
+
+
+🔨 Task Breakdown
+
+| Area | Lead | Responsibilities |
+| :--- | :--- | :--- | 
+| **Backend** | Abdifatah | API Design, venv setup, DB Schema |
+| **Frontend** | Suleiman | Component architecture & Routing | 
+| **Design** & **Auth** | Sydney | Brand Assets, Layout Polishing & JWT | 
+ 
