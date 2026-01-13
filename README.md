@@ -9,8 +9,11 @@ Goal: Streamline local event discovery and foster community engagement through t
 LERA allows users to:
 
    Discover: Browse localized event listings with real-time filtering.
+   
    Organize: Create and manage events via a dedicated Organizer Panel.
+   
    Engage: Write reviews, rate experiences, and select tickets.
+   
    Administer: Full-scale management of users and events via the Admin Panel.
    
 🧠 Tech Stack
