@@ -24,14 +24,13 @@ LERA allows users to:
 
 🧩 Setup Instructions
 
-
-## 🧩 Setup Instructions
-
 Follow these steps to get your local development environment running.
 
 <summary><b>Step 1: Clone the Repository</b></summary>
 
 ```bash
+<summary><b>Step 1: Clone the Repository</b></summary>
+
 git clone [https://github.com/realsule/lera.git](https://github.com/realsule/lera.git)
 cd LERA
 </details>
