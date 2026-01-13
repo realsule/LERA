@@ -15,18 +15,12 @@ LERA allows users to:
    
 🧠 Tech Stack
 
-Layer,Technology,Description
-Frontend,React (Vite),High-performance UI with modern routing.
-Backend,Python (Flask/Django),Robust logic & API management.
-State,Context API,Global AuthContext for session handling.
-Styling,CSS3 / Tailwind,"Clean, professional ""Urban"" aesthetic."
-
-
-| **Frontend** | React (Vite) | 
+| Layer | Technology |
+| :--- | :--- |
+| **Frontend** | React (Vite) |
 | **Backend** | Python (Flask) |
-| **State** | Context API | 
+| **State** | Context API |
 | **Styling** | CSS3 / Tailwind |
-
 
 🧩 Setup Instructions
 
