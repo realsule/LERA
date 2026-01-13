@@ -4,6 +4,7 @@ LERA is a sophisticated community-driven platform designed to bridge the gap bet
 
 Goal: Streamline local event discovery and foster community engagement through transparent reviews.Mission: "Connecting people to experiences that matter, right in their backyard."
 
+
 🌍 Overview
 
 LERA allows users to:
@@ -15,6 +16,7 @@ LERA allows users to:
    Engage: Write reviews, rate experiences, and select tickets.
    
    Administer: Full-scale management of users and events via the Admin Panel.
+
    
 🧠 Tech Stack
 
@@ -25,33 +27,29 @@ LERA allows users to:
 | **State** | Context API |
 | **Styling** | CSS3 / Tailwind |
 
+
 🧩 Setup Instructions
 
 Follow these steps to get your local development environment running.
 
-<summary><b>Step 1: Clone the Repository</b></summary>
 
 ```bash
-<summary><b>Step 1: Clone the Repository</b></summary>
+Step 1: Clone the Repository
 
 git clone [https://github.com/realsule/lera.git](https://github.com/realsule/lera.git)
 cd LERA
-</details>
 
-<details> <summary><b>Step 2: Frontend Setup (React + Vite)</b></summary>
+Step 2: Frontend Setup (React + Vite)
 
 Navigate to the client directory and install dependencies:
-
-Bash
 
 cd client
 npm install
 npm run dev
+
 Note: The frontend will be available at http://localhost:5173
 
-</details>
-
-<details> <summary><b>Step 3: Backend Setup (Python)</b></summary>
+Step 3: Backend Setup (Python)
 
 Activate your environment and install the required packages:
 
@@ -69,7 +67,6 @@ pip install -r requirements.txt
 # Start the server
 python app.py
 ```
-
 
 🔨 Task Breakdown
 
