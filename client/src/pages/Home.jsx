@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { Link } from 'react-router-dom';
+import { Helmet } from 'react-helmet-async';
 import { Search, Calendar, MapPin, Users, Star, ArrowRight, Ticket, TrendingUp, AlertTriangle } from 'lucide-react';
 import EventCard from "../components/events/EventCard";
 import ErrorBoundary from '../components/common/ErrorBoundary';
@@ -245,7 +246,32 @@ const Home = () => {
   }, []);
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <>
+      <Helmet>
+        <title>Discover Amazing Events Near You | LERA Event Platform</title>
+        <meta name="description" content="Find and book tickets for concerts, conferences, sports, and more. Your next unforgettable experience is just a click away." />
+        <meta name="keywords" content="events, concerts, conferences, sports, workshops, parties, tickets, booking" />
+        <meta property="og:title" content="Discover Amazing Events Near You | LERA Event Platform" />
+        <meta property="og:description" content="Find and book tickets for concerts, conferences, sports, and more." />
+        <meta property="og:type" content="website" />
+        <meta property="og:url" content={typeof window !== 'undefined' ? window.location.href : ''} />
+        <meta name="twitter:card" content="summary_large_image" />
+        <script type="application/ld+json">
+          {JSON.stringify({
+            "@context": "https://schema.org",
+            "@type": "WebSite",
+            "name": "LERA Event Platform",
+            "description": "Discover and book amazing events near you",
+            "url": typeof window !== 'undefined' ? window.location.href : '',
+            "potentialAction": {
+              "@type": "SearchAction",
+              "target": `${typeof window !== 'undefined' ? window.location.href : ''}/events?q={search_term}`,
+              "query-input": "required name=search_term"
+            }
+          })}
+        </script>
+      </Helmet>
+      <div className="min-h-screen bg-gray-50">
       {/* Hero Section */}
       <section className="bg-gradient-to-br from-indigo-600 to-blue-700 text-white" data-testid="hero-section">
         <div className="container mx-auto px-4 py-20">
@@ -442,6 +468,7 @@ const Home = () => {
         </section>
       )}
     </div>
+    </>
   );
 };
 
