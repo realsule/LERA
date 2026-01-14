@@ -76,6 +76,14 @@ const MOCK_EVENTS = [
   }
 ];
 
+// Analytics tracking
+const trackEvent = (eventName, properties = {}) => {
+  // Mock analytics - in production this would send to real analytics service
+  console.log('Analytics Event:', eventName, properties);
+  
+  // Example: window.gtag('event', eventName, properties);
+};
+
 // Custom hook for event filtering logic
 const useEventFilter = (events, searchQuery, selectedCategory) => {
   return useMemo(() => {
@@ -137,8 +145,17 @@ const Home = () => {
         setLoading(true);
         const data = await fetchEvents();
         setEvents(data);
+        trackEvent('page_load', { 
+          page: 'home', 
+          events_count: data.length,
+          load_time: Date.now()
+        });
       } catch (error) {
         console.error('Failed to fetch events:', error);
+        trackEvent('error', { 
+          type: 'fetch_events_failed',
+          message: error.message 
+        });
       } finally {
         setLoading(false);
       }
@@ -179,15 +196,29 @@ const Home = () => {
 
   // Event handlers
   const handleSearchChange = useCallback((e) => {
-    setSearchInputValue(e.target.value);
+    const value = e.target.value;
+    setSearchInputValue(value);
+    trackEvent('search_input', { 
+      search_term: value,
+      input_length: value.length 
+    });
   }, []);
 
   const handleCategoryChange = useCallback((e) => {
-    setSelectedCategory(e.target.value);
+    const category = e.target.value;
+    setSelectedCategory(category);
+    trackEvent('category_filter', { 
+      category: category,
+      filter_type: 'dropdown'
+    });
   }, []);
 
   const handleCategoryClick = useCallback((category) => {
     setSelectedCategory(category);
+    trackEvent('category_filter', { 
+      category: category,
+      filter_type: 'button'
+    });
   }, []);
 
   return (
