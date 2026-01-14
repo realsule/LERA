@@ -113,6 +113,7 @@ const Home = () => {
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedCategory, setSelectedCategory] = useState('all');
+  const [searchInputValue, setSearchInputValue] = useState('');
 
   // Fetch events on component mount
   useEffect(() => {
@@ -134,9 +135,18 @@ const Home = () => {
   // Use custom hook for filtering
   const filteredEvents = useEventFilter(events, searchQuery, selectedCategory);
 
+  // Debounced search effect
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setSearchQuery(searchInputValue);
+    }, 300); // 300ms debounce
+
+    return () => clearTimeout(timer);
+  }, [searchInputValue]);
+
   // Event handlers
   const handleSearchChange = useCallback((e) => {
-    setSearchQuery(e.target.value);
+    setSearchInputValue(e.target.value);
   }, []);
 
   const handleCategoryChange = useCallback((e) => {
@@ -167,7 +177,7 @@ const Home = () => {
                 <input
                   type="text"
                   placeholder="Search events, artists, venues..."
-                  value={searchQuery}
+                  value={searchInputValue}
                   onChange={handleSearchChange}
                   className="w-full py-3 text-gray-900 placeholder-gray-500 focus:outline-none"
                   data-testid="search-input"
@@ -228,6 +238,7 @@ const Home = () => {
                   <p className="text-gray-400 mt-2">Try adjusting your search or filters.</p>
                   <button
                     onClick={() => {
+                      setSearchInputValue('');
                       setSearchQuery('');
                       setSelectedCategory('all');
                     }}
