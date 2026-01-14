@@ -79,6 +79,46 @@ const MOCK_EVENTS = [
   }
 ];
 
+// Progressive Web App features
+useEffect(() => {
+  // Register service worker for PWA functionality
+  if ('serviceWorker' in navigator && process.env.NODE_ENV === 'production') {
+    navigator.serviceWorker.register('/sw.js')
+      .then(registration => {
+        console.log('SW registered: ', registration);
+        trackEvent('pwa_sw_registered', { success: true });
+      })
+      .catch(error => {
+        console.log('SW registration failed: ', error);
+        trackEvent('pwa_sw_register_failed', { error: error.message });
+      });
+  }
+
+  // Install prompt for PWA
+  const handleBeforeInstallPrompt = (e) => {
+    e.preventDefault();
+    trackEvent('pwa_install_prompt_shown');
+    
+    // Show custom install button
+    const installButton = document.createElement('button');
+    installButton.textContent = 'Install App';
+    installButton.className = 'fixed bottom-4 right-4 bg-indigo-600 text-white px-4 py-2 rounded-lg shadow-lg z-50';
+    installButton.onclick = () => {
+      e.prompt();
+      trackEvent('pwa_install_clicked');
+      installButton.remove();
+    };
+    
+    document.body.appendChild(installButton);
+  };
+
+  window.addEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
+  
+  return () => {
+    window.removeEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
+  };
+}, []);
+
 // A/B Testing Framework
 const useABTest = (testName, variants) => {
   const [variant, setVariant] = useState('control');
