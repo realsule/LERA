@@ -1,3 +1,13 @@
+/**
+ * OrganizerPanel Component
+ * 
+ * Provides event organizers with tools to manage their events, track sales,
+ * and analyze performance metrics. Features event creation, editing, deletion,
+ * sales analytics, and revenue tracking.
+ * 
+ * @component
+ * @returns {JSX.Element} Organizer dashboard interface
+ */
 import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { 
@@ -6,27 +16,30 @@ import {
   TrendingUp, 
   DollarSign, 
   Users, 
-  Eye,
-  Edit,
-  Trash2,
-  BarChart3,
-  Ticket,
-  Clock
+  Eye, 
+  Edit, 
+  Trash2, 
+  BarChart3, 
+  Ticket, 
+  Clock,
+  CheckCircle,
+  XCircle
 } from 'lucide-react';
 import { eventsAPI } from '../../services/api';
 
 const OrganizerPanel = () => {
+  // State management for organizer dashboard
   const [stats, setStats] = useState({
-    totalEvents: 0,
-    upcomingEvents: 0,
-    totalTicketsSold: 0,
-    totalRevenue: 0,
+    totalEvents: 0,        // Total events created by organizer
+    upcomingEvents: 0,     // Events scheduled for future
+    totalTicketsSold: 0,  // Total tickets sold across all events
+    totalRevenue: 0,      // Total revenue from ticket sales
   });
-  const [events, setEvents] = useState([]);
-  const [loading, setLoading] = useState(true);
-  const [activeTab, setActiveTab] = useState('overview');
+  const [events, setEvents] = useState([]);         // Organizer's events list
+  const [loading, setLoading] = useState(true);     // Loading state
+  const [activeTab, setActiveTab] = useState('overview'); // Active tab navigation
 
-  // Mock data for development
+  // Mock data for development - replace with API calls in production
   const mockStats = {
     totalEvents: 8,
     upcomingEvents: 3,
@@ -46,7 +59,7 @@ const OrganizerPanel = () => {
       ticketsSold: 450,
       totalTickets: 1000,
       revenue: 33750,
-      image: 'https://images.unsplash.com/photo-1459749411175-04bf5292ceea?w=200&h=120&fit=crop',
+      image: 'https://images.unsplash.com/photo-1459749410701-44d254a3cbaa?w=200&h=120&fit=crop',
     },
     {
       id: '2',
@@ -72,7 +85,7 @@ const OrganizerPanel = () => {
       ticketsSold: 180,
       totalTickets: 500,
       revenue: 21600,
-      image: 'https://images.unsplash.com/photo-1414235077428-338989a2e8c0?w=200&h=120&fit=crop',
+      image: 'https://images.unsplash.com/photo-1414235077428-078e5daa3b70?w=200&h=120&fit=crop',
     },
   ];
 
@@ -95,12 +108,13 @@ const OrganizerPanel = () => {
         //   eventsAPI.getMyEvents(),
         //   eventsAPI.getMyStats()
         // ]);
+        
         // setEvents(eventsResponse.data);
         // setStats(statsResponse.data);
 
         // Using mock data for now
-        setStats(mockStats);
         setEvents(mockEvents);
+        setStats(mockStats);
       } catch (error) {
         console.error('Error fetching organizer data:', error);
       } finally {
@@ -111,22 +125,21 @@ const OrganizerPanel = () => {
     fetchData();
   }, []);
 
+  const getSalesPercentage = (sold, total) => {
+    return total > 0 ? Math.round((sold / total) * 100) : 0;
+  };
+
   const handleDeleteEvent = async (eventId) => {
     if (window.confirm('Are you sure you want to delete this event?')) {
       try {
         // Uncomment when API is ready
         // await eventsAPI.delete(eventId);
         
-        // Update local state
         setEvents(prev => prev.filter(event => event.id !== eventId));
       } catch (error) {
         console.error('Error deleting event:', error);
       }
     }
-  };
-
-  const getSalesPercentage = (sold, total) => {
-    return total > 0 ? Math.round((sold / total) * 100) : 0;
   };
 
   if (loading) {
@@ -214,9 +227,8 @@ const OrganizerPanel = () => {
           {/* Tab Content */}
           {activeTab === 'overview' && (
             <div className="space-y-6">
-              {/* Quick Actions */}
               <div className="flex justify-between items-center">
-                <h3 className="text-lg font-semibold text-gray-900">Quick Actions</h3>
+                <h3 className="text-lg font-semibold text-gray-900 mb-4">Quick Actions</h3>
                 <Link
                   to="/events/create"
                   className="inline-flex items-center px-4 py-2 bg-indigo-600 text-white text-sm font-medium rounded-md hover:bg-indigo-700 transition-colors duration-200"
@@ -228,7 +240,7 @@ const OrganizerPanel = () => {
 
               {/* Recent Events */}
               <div>
-                <h4 className="text-md font-medium text-gray-900 mb-4">Recent Events</h4>
+                <h4 className="text-md font-medium text-gray-900 mb-2">Recent Events</h4>
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                   {events.slice(0, 3).map((event) => (
                     <div key={event.id} className="bg-gray-50 rounded-lg p-4">
@@ -239,22 +251,8 @@ const OrganizerPanel = () => {
                           className="w-16 h-16 rounded-lg object-cover"
                         />
                         <div className="flex-1 min-w-0">
-                          <h5 className="text-sm font-medium text-gray-900 truncate">
-                            {event.title}
-                          </h5>
+                          <h5 className="text-sm font-medium text-gray-900 truncate">{event.title}</h5>
                           <p className="text-xs text-gray-500">{event.venue}</p>
-                          <div className="flex items-center justify-between mt-2">
-                            <span className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${
-                              event.status === 'published' 
-                                ? 'bg-green-100 text-green-800' 
-                                : 'bg-gray-100 text-gray-800'
-                            }`}>
-                              {event.status}
-                            </span>
-                            <span className="text-xs text-gray-500">
-                              {event.ticketsSold}/{event.totalTickets}
-                            </span>
-                          </div>
                         </div>
                       </div>
                     </div>
@@ -291,8 +289,8 @@ const OrganizerPanel = () => {
 
           {activeTab === 'events' && (
             <div className="space-y-4">
-              <div className="flex justify-between items-center">
-                <h3 className="text-lg font-semibold text-gray-900">My Events</h3>
+              <div className="flex justify-between items-center mb-4">
+                <h3 className="text-lg font-semibold text-gray-900 mb-4">My Events</h3>
                 <Link
                   to="/events/create"
                   className="inline-flex items-center px-4 py-2 bg-indigo-600 text-white text-sm font-medium rounded-md hover:bg-indigo-700 transition-colors duration-200"
@@ -302,90 +300,87 @@ const OrganizerPanel = () => {
                 </Link>
               </div>
 
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                {events.map((event) => (
-                  <div key={event.id} className="bg-white border border-gray-200 rounded-lg overflow-hidden hover:shadow-lg transition-shadow duration-300">
-                    <div className="relative h-48">
-                      <img
-                        src={event.image}
-                        alt={event.title}
-                        className="w-full h-full object-cover"
-                      />
-                      <div className="absolute top-3 right-3">
-                        <span className={`px-3 py-1 text-xs font-medium rounded-full ${
-                          event.status === 'published' 
-                            ? 'bg-green-100 text-green-800' 
-                            : 'bg-gray-100 text-gray-800'
-                        }`}>
-                          {event.status}
-                        </span>
-                      </div>
-                    </div>
-                    
-                    <div className="p-4">
-                      <h4 className="font-semibold text-gray-900 mb-2">{event.title}</h4>
-                      <div className="space-y-2 text-sm text-gray-600 mb-4">
-                        <div className="flex items-center">
-                          <Calendar className="h-4 w-4 mr-2" />
+              <div className="bg-white shadow-sm rounded-lg overflow-hidden">
+                <table className="min-w-full divide-y divide-gray-200">
+                  <thead className="bg-gray-50">
+                    <tr>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                        Event
+                      </th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                        Organizer
+                      </th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                        Date
+                      </th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                        Status
+                      </th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                        Actions
+                      </th>
+                    </tr>
+                  </thead>
+                  <tbody className="bg-white divide-y divide-gray-200">
+                    {events.map((event) => (
+                      <tr key={event.id} className="hover:bg-gray-50">
+                        <td className="px-6 py-4 whitespace-nowrap">
+                          <div className="flex items-center space-x-3">
+                            <img
+                              src={event.image}
+                              alt={event.title}
+                              className="w-16 h-16 rounded-lg object-cover"
+                            />
+                            <div className="flex-1 min-w-0">
+                              <h5 className="text-sm font-medium text-gray-900 truncate">{event.title}</h5>
+                              <p className="text-xs text-gray-500">{event.venue}</p>
+                            </div>
+                          </div>
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
                           {new Date(event.date).toLocaleDateString()}
-                        </div>
-                        <div className="flex items-center">
-                          <Users className="h-4 w-4 mr-2" />
-                          {event.venue}
-                        </div>
-                        <div className="flex items-center justify-between">
-                          <span className="flex items-center">
-                            <Ticket className="h-4 w-4 mr-2" />
-                            {event.ticketsSold}/{event.totalTickets} sold
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap">
+                          <span className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${
+                            event.status === 'published' ? 'bg-green-100 text-green-800' :
+                            'bg-gray-100 text-gray-800'
+                          }`}>
+                            {event.status}
                           </span>
-                          <span className="font-medium text-gray-900">
-                            ${event.revenue.toLocaleString()}
-                          </span>
-                        </div>
-                      </div>
-                      
-                      {/* Sales Progress */}
-                      <div className="mb-4">
-                        <div className="flex justify-between text-xs text-gray-600 mb-1">
-                          <span>Sales Progress</span>
-                          <span>{getSalesPercentage(event.ticketsSold, event.totalTickets)}%</span>
-                        </div>
-                        <div className="w-full bg-gray-200 rounded-full h-2">
-                          <div
-                            className="bg-indigo-600 h-2 rounded-full transition-all duration-300"
-                            style={{ width: `${getSalesPercentage(event.ticketsSold, event.totalTickets)}%` }}
-                          ></div>
-                        </div>
-                      </div>
-                      
-                      <div className="flex space-x-2">
-                        <Link
-                          to={`/events/${event.id}`}
-                          className="flex-1 flex items-center justify-center px-3 py-2 bg-indigo-600 text-white text-sm font-medium rounded-md hover:bg-indigo-700 transition-colors duration-200"
-                        >
-                          <Eye className="h-4 w-4 mr-1" />
-                          View
-                        </Link>
-                        <button className="flex items-center justify-center px-3 py-2 border border-gray-300 text-gray-700 text-sm font-medium rounded-md hover:bg-gray-50 transition-colors duration-200">
-                          <Edit className="h-4 w-4" />
-                        </button>
-                        <button 
-                          onClick={() => handleDeleteEvent(event.id)}
-                          className="flex items-center justify-center px-3 py-2 border border-red-300 text-red-700 text-sm font-medium rounded-md hover:bg-red-50 transition-colors duration-200"
-                        >
-                          <Trash2 className="h-4 w-4" />
-                        </button>
-                      </div>
-                    </div>
-                  </div>
-                ))}
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
+                          {event.ticketsSold}/{event.totalTickets} sold
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
+                          ${event.revenue.toLocaleString()}
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
+                          <div className="flex space-x-2">
+                            <Link
+                              to={`/events/${event.id}/edit`}
+                              className="text-indigo-600 hover:text-indigo-900"
+                            >
+                              <Eye className="h-4 w-4 inline" />
+                            </Link>
+                            <button
+                              onClick={() => handleDeleteEvent(event.id)}
+                              className="text-red-600 hover:text-red-900"
+                            >
+                              <Trash2 className="h-4 w-4 inline" />
+                            </button>
+                          </div>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
               </div>
             </div>
           )}
 
           {activeTab === 'analytics' && (
             <div className="space-y-6">
-              <h3 className="text-lg font-semibold text-gray-900">Analytics Dashboard</h3>
+              <h3 className="text-lg font-semibold text-gray-900 mb-4">Analytics Dashboard</h3>
               
               {/* Revenue Chart */}
               <div className="bg-white border border-gray-200 rounded-lg p-6">
@@ -422,7 +417,7 @@ const OrganizerPanel = () => {
                           <p className="text-sm text-gray-500">{getSalesPercentage(event.ticketsSold, event.totalTickets)}% sold</p>
                         </div>
                       </div>
-                    ))}
+                  ))}
                 </div>
               </div>
             </div>

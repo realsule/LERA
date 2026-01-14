@@ -7,7 +7,7 @@ import EventDetail from './pages/EventDetail';
 import Dashboard from './pages/Dashboard';
 import Login from './pages/Login';
 import Unauthorized from './pages/Unauthorized';
-import ProtectedRoute from './components/layout/ProtectedRoute';
+import ProtectedRoute from './layout/ProtectedRoute';
 
 function App() {
   return (

@@ -1,6 +1,5 @@
 import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
-import api from '../services/api';
 
 const AuthContext = createContext();
 
@@ -31,9 +30,10 @@ export const AuthProvider = ({ children }) => {
           setUser(parsedUser);
           setToken(storedToken);
           
-          // Verify token is still valid
-          await api.get('/auth/verify');
+          // Skip API verification for now to avoid errors
+          console.log('Auth initialized with stored user:', parsedUser);
         } catch (err) {
+          console.error('Failed to parse stored user:', err);
           // Token is invalid, clear storage
           localStorage.removeItem('token');
           localStorage.removeItem('user');
@@ -52,46 +52,58 @@ export const AuthProvider = ({ children }) => {
       setLoading(true);
       setError(null);
       
-      const response = await api.post('/auth/login', credentials);
-      const { user: userData, token: authToken } = response.data;
+      // Mock login for development - replace with actual API call
+      const mockUser = {
+        id: '1',
+        firstName: 'John',
+        lastName: 'Doe',
+        email: credentials.email,
+        role: 'attendee', // or 'organizer', 'admin'
+      };
       
-      setUser(userData);
-      setToken(authToken);
+      const mockToken = 'mock-jwt-token-' + Date.now();
       
-      // Store in localStorage
-      localStorage.setItem('token', authToken);
-      localStorage.setItem('user', JSON.stringify(userData));
+      setUser(mockUser);
+      setToken(mockToken);
+      localStorage.setItem('token', mockToken);
+      localStorage.setItem('user', JSON.stringify(mockUser));
       
-      return { success: true, user: userData };
+      return { user: mockUser, token: mockToken };
     } catch (err) {
       const errorMessage = err.response?.data?.message || 'Login failed';
       setError(errorMessage);
-      return { success: false, error: errorMessage };
+      throw err;
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [navigate]);
 
   const register = useCallback(async (userData) => {
     try {
       setLoading(true);
       setError(null);
       
-      const response = await api.post('/auth/register', userData);
-      const { user: newUser, token: authToken } = response.data;
+      // Mock registration for development - replace with actual API call
+      const mockUser = {
+        id: Date.now().toString(),
+        firstName: userData.firstName,
+        lastName: userData.lastName,
+        email: userData.email,
+        role: userData.role || 'attendee',
+      };
       
-      setUser(newUser);
-      setToken(authToken);
+      const mockToken = 'mock-jwt-token-' + Date.now();
       
-      // Store in localStorage
-      localStorage.setItem('token', authToken);
-      localStorage.setItem('user', JSON.stringify(newUser));
+      setUser(mockUser);
+      setToken(mockToken);
+      localStorage.setItem('token', mockToken);
+      localStorage.setItem('user', JSON.stringify(mockUser));
       
-      return { success: true, user: newUser };
+      return { user: mockUser, token: mockToken };
     } catch (err) {
       const errorMessage = err.response?.data?.message || 'Registration failed';
       setError(errorMessage);
-      return { success: false, error: errorMessage };
+      throw err;
     } finally {
       setLoading(false);
     }
@@ -100,28 +112,31 @@ export const AuthProvider = ({ children }) => {
   const logout = useCallback(() => {
     setUser(null);
     setToken(null);
-    setError(null);
-    
-    // Clear localStorage
     localStorage.removeItem('token');
     localStorage.removeItem('user');
-    
-    navigate('/login');
+    navigate('/');
   }, [navigate]);
 
-  const updateUser = useCallback((userData) => {
-    const updatedUser = { ...user, ...userData };
-    setUser(updatedUser);
-    localStorage.setItem('user', JSON.stringify(updatedUser));
-  }, [user]);
-
-  const hasRole = useCallback((role) => {
-    return user?.roles?.includes(role) || user?.role === role;
-  }, [user]);
-
-  const isAuthenticated = useCallback(() => {
+  const isAuthenticated = () => {
     return !!token && !!user;
-  }, [token, user]);
+  };
+
+  const hasRole = (role) => {
+    return user?.role === role;
+  };
+
+  const hasAnyRole = (roles) => {
+    return roles.includes(user?.role);
+  };
+
+  const updateUser = useCallback((userData) => {
+    setUser(prevUser => ({ ...prevUser, ...userData }));
+    localStorage.setItem('user', JSON.stringify({ ...user, ...userData }));
+  }, [user]);
+
+  const clearError = useCallback(() => {
+    setError(null);
+  }, []);
 
   const value = {
     user,
@@ -131,10 +146,11 @@ export const AuthProvider = ({ children }) => {
     login,
     register,
     logout,
-    updateUser,
-    hasRole,
     isAuthenticated,
-    setError
+    hasRole,
+    hasAnyRole,
+    updateUser,
+    clearError,
   };
 
   return (
