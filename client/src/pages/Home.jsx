@@ -1,8 +1,7 @@
-import React, { useState, useEffect, useCallback, useMemo } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
-import { Search, Calendar, MapPin, Users, Star, ArrowRight, Ticket, TrendingUp, AlertTriangle } from 'lucide-react';
+import { Search, Calendar, MapPin, Users, Star, ArrowRight, Ticket, TrendingUp } from 'lucide-react';
 import EventCard from "../components/events/EventCard";
-import ErrorBoundary from '../components/common/ErrorBoundary';
 
 // Constants for better maintainability
 const CATEGORIES = [
@@ -14,6 +13,7 @@ const CATEGORIES = [
   { label: 'Parties', value: 'party' }
 ];
 
+// Mock events data
 const MOCK_EVENTS = [
   {
     id: '1',
@@ -77,181 +77,52 @@ const MOCK_EVENTS = [
   }
 ];
 
-// A/B Testing Framework
-const useABTest = (testName, variants) => {
-  const [variant, setVariant] = useState('control');
-  
-  useEffect(() => {
-    // Simple hash-based assignment for demo
-    const userId = 'user_' + Math.random().toString(36).substr(2, 9);
-    const hash = userId.split('').reduce((a, b) => {
-      a = ((a << 5) - a) + b.charCodeAt(0);
-      return a & a;
-    }, 0);
-    const variantIndex = Math.abs(hash) % variants.length;
-    const assignedVariant = variants[variantIndex];
-    
-    setVariant(assignedVariant);
-    // Only track once
-    if (variant === 'control') {
-      // trackEvent('ab_test_assigned', {
-      //   test_name: testName,
-      //   variant: assignedVariant,
-      //   user_id: userId
-      // });
-    }
-  }, [testName, variants.length]); // Only re-run if variants array changes
-  
-  return variant;
-};
-
-// Performance monitoring
-const reportWebVitals = (metric) => {
-  console.log('Web Vital:', metric);
-  trackEvent('web_vital', {
-    name: metric.name,
-    value: metric.value,
-    rating: metric.rating,
-    delta: metric.delta,
-    id: metric.id
-  });
-  
-  // Example: Send to analytics service
-  // window.gtag('event', 'web_vital', metric);
-};
-
-// Analytics tracking
-const trackEvent = (eventName, properties = {}) => {
-  // Mock analytics - in production this would send to real analytics service
-  // Temporarily disabled for testing
-  // console.log('Analytics Event:', eventName, properties);
-  
-  // Example: window.gtag('event', eventName, properties);
-};
-
-// Custom hook for event filtering logic
-const useEventFilter = (events, searchQuery, selectedCategory) => {
-  return useMemo(() => {
-    let filtered = events;
-
-    // Filter by search query
-    if (searchQuery.trim()) {
-      filtered = filtered.filter(event =>
-        event.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        event.description.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        event.venue.toLowerCase().includes(searchQuery.toLowerCase())
-      );
-    }
-
-    // Filter by category
-    if (selectedCategory !== 'all') {
-      filtered = filtered.filter(event => event.category === selectedCategory);
-    }
-
-    return filtered;
-  }, [events, searchQuery, selectedCategory]);
-};
-
-// Loading Skeleton Component
-const EventSkeleton = () => (
-  <div className="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden animate-pulse">
-    <div className="h-48 bg-gray-200"></div>
-    <div className="p-4">
-      <div className="h-4 bg-gray-200 rounded mb-2 w-3/4"></div>
-      <div className="h-3 bg-gray-200 rounded mb-4 w-1/2"></div>
-      <div className="space-y-2">
-        <div className="h-3 bg-gray-200 rounded w-1/4"></div>
-        <div className="h-3 bg-gray-200 rounded w-1/4"></div>
-      </div>
-    </div>
-  </div>
-);
-
-// Mock API call function
-const fetchEvents = async () => {
-  return new Promise((resolve) => {
-    setTimeout(() => {
-      resolve(MOCK_EVENTS);
-    }, 50); // Further reduced delay for faster testing
-  });
-};
-
 const Home = () => {
   const [events, setEvents] = useState([]);
-  const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedCategory, setSelectedCategory] = useState('all');
   const [searchInputValue, setSearchInputValue] = useState('');
-  
-  // Static hero title for now
-  const heroTitle = 'Discover Amazing Events Near You';
 
   // Fetch events on component mount
   useEffect(() => {
-    console.log('useEffect running, loading:', loading);
-    const loadEvents = async () => {
+    console.log('useEffect running');
+    const loadEvents = () => {
       try {
-        console.log('Starting to load events...');
-        setLoading(true);
-        const data = await fetchEvents();
-        console.log('Events fetched:', data);
-        setEvents(data);
-        // trackEvent('page_load', { 
-        //   page: 'home', 
-        //   events_count: data.length,
-        //   load_time: Date.now()
-        // });
+        console.log('Loading events...');
+        // Simulate API call
+        setTimeout(() => {
+          console.log('Setting events:', MOCK_EVENTS);
+          setEvents(MOCK_EVENTS);
+        }, 100);
       } catch (error) {
         console.error('Failed to fetch events:', error);
-        // trackEvent('error', { 
-        //   type: 'fetch_events_failed',
-        //   message: error.message 
-        // });
-      } finally {
-        console.log('Setting loading to false');
-        setLoading(false);
       }
     };
 
     loadEvents();
   }, []);
 
-  // Use custom hook for filtering
-  const filteredEvents = useMemo(() => {
-    let filtered = events;
-
-    // Filter by search query
-    if (searchQuery.trim()) {
-      filtered = filtered.filter(event =>
-        event.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        event.description.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        event.venue.toLowerCase().includes(searchQuery.toLowerCase())
-      );
-    }
-
-    // Filter by category
-    if (selectedCategory !== 'all') {
-      filtered = filtered.filter(event => event.category === selectedCategory);
-    }
-
-    return filtered;
-  }, [events, searchQuery, selectedCategory]);
+  // Filter events
+  const filteredEvents = events.filter(event => {
+    const matchesSearch = searchQuery.trim() === '' || 
+      event.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      event.description.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      event.venue.toLowerCase().includes(searchQuery.toLowerCase());
+    
+    const matchesCategory = selectedCategory === 'all' || event.category === selectedCategory;
+    
+    return matchesSearch && matchesCategory;
+  });
 
   // Event handlers
-  const handleSearchChange = useCallback((e) => {
-    const value = e.target.value;
-    setSearchQuery(value);
-    setSearchInputValue(value);
-  }, []);
+  const handleSearchChange = (e) => {
+    setSearchQuery(e.target.value);
+    setSearchInputValue(e.target.value);
+  };
 
-  const handleCategoryChange = useCallback((e) => {
-    const category = e.target.value;
-    setSelectedCategory(category);
-  }, []);
-
-  const handleCategoryClick = useCallback((category) => {
-    setSelectedCategory(category);
-  }, []);
+  const handleCategoryChange = (e) => {
+    setSelectedCategory(e.target.value);
+  };
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -260,7 +131,7 @@ const Home = () => {
         <div className="container mx-auto px-4 py-20">
           <div className="max-w-4xl mx-auto text-center">
             <h1 className="text-5xl font-bold mb-6" data-testid="hero-title">
-              {heroTitle}
+              Discover Amazing Events Near You
             </h1>
             <p className="text-xl mb-8 text-blue-100" data-testid="hero-description">
               Find and book tickets for concerts, conferences, sports, and more. Your next unforgettable experience is just a click away.
@@ -305,175 +176,121 @@ const Home = () => {
         </div>
       </section>
 
-      {/* Loading State */}
-      {loading && (
-        <section className="py-12" data-testid="loading-section">
-          <div className="container mx-auto px-4">
-            <div className="mb-8">
-              <h2 className="text-3xl font-bold text-gray-900 mb-4">Loading Events</h2>
-              <p className="text-gray-600">Finding amazing events for you...</p>
-            </div>
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-              {[1, 2, 3].map(i => (
-                <EventSkeleton key={i} />
+      {/* Events Section */}
+      <section className="py-12" data-testid="events-section">
+        <div className="container mx-auto px-4">
+          {/* Featured Events */}
+          <div className="mb-12" data-testid="featured-events">
+            <h2 className="text-3xl font-bold text-gray-900 mb-4">Featured Events</h2>
+            <p className="text-gray-600 mb-8">Explore our handpicked selection of amazing events</p>
+            
+            {filteredEvents.length === 0 ? (
+              <div className="text-center py-12" data-testid="no-events">
+                <p className="text-gray-500 text-lg">No events found matching your criteria.</p>
+                <p className="text-gray-400 mt-2">Try adjusting your search or filters.</p>
+                <button
+                  onClick={() => {
+                    setSearchInputValue('');
+                    setSearchQuery('');
+                    setSelectedCategory('all');
+                  }}
+                  className="mt-4 px-6 py-2 bg-indigo-600 text-white rounded-md hover:bg-indigo-700 transition-colors duration-200"
+                  data-testid="clear-filters-button"
+                >
+                  Clear filters
+                </button>
+              </div>
+            ) : (
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6" data-testid="events-grid">
+                {filteredEvents.map(event => (
+                  <EventCard
+                    key={event.id}
+                    event={event}
+                    data-testid="event-card"
+                  />
+                ))}
+              </div>
+            )}
+          </div>
+
+          {/* Categories Section */}
+          <div className="mb-12" data-testid="categories-section">
+            <h2 className="text-3xl font-bold text-gray-900 mb-4">Browse by Category</h2>
+            <p className="text-gray-600 mb-8">Find events that match your interests</p>
+            
+            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
+              {CATEGORIES.filter(cat => cat.value !== 'all').map(category => (
+                <button
+                  key={category.value}
+                  onClick={() => setSelectedCategory(category.value)}
+                  className={`p-4 rounded-lg border transition-colors duration-200 ${
+                    selectedCategory === category.value
+                      ? 'bg-indigo-600 text-white'
+                      : 'bg-white text-gray-700 border-gray-300'
+                  }`}
+                  aria-label={`Filter by ${category.label}`}
+                >
+                  {category.label}
+                </button>
               ))}
             </div>
           </div>
-        </section>
-      )}
 
-      {/* Events Section */}
-      {!loading && (
-        <section className="py-12" data-testid="events-section">
-          <div className="container mx-auto px-4">
-            {/* Featured Events */}
-            <div className="mb-12" data-testid="featured-events">
-              <h2 className="text-3xl font-bold text-gray-900 mb-4">Featured Events</h2>
-              <p className="text-gray-600 mb-8">Explore our handpicked selection of amazing events</p>
-              
-              {filteredEvents.length === 0 ? (
-                <div className="text-center py-12" data-testid="no-events">
-                  <p className="text-gray-500 text-lg">No events found matching your criteria.</p>
-                  <p className="text-gray-400 mt-2">Try adjusting your search or filters.</p>
-                  <button
-                    onClick={() => {
-                      setSearchInputValue('');
-                      setSearchQuery('');
-                      setSelectedCategory('all');
-                    }}
-                    className="mt-4 px-6 py-2 bg-indigo-600 text-white rounded-md hover:bg-indigo-700 transition-colors duration-200"
-                    data-testid="clear-filters-button"
-                  >
-                    Clear filters
-                  </button>
-                </div>
-              ) : (
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6" data-testid="events-grid">
-                  {filteredEvents.map(event => (
-                    <EventCard
-                      key={event.id}
-                      event={event}
-                      data-testid="event-card"
-                    />
-                  ))}
-                </div>
-              )}
-            </div>
-
-            {/* Categories Section */}
-            <div className="mb-12" data-testid="categories-section">
-              <h2 className="text-3xl font-bold text-gray-900 mb-4">Browse by Category</h2>
-              <p className="text-gray-600 mb-8">Find events that match your interests</p>
-              
-              <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
-                {CATEGORIES.filter(cat => cat.value !== 'all').map(category => (
-                  <button
-                    key={category.value}
-                    onClick={() => handleCategoryClick(category.value)}
-                    className={`p-4 rounded-lg border transition-colors duration-200 ${
-                      selectedCategory === category.value
-                        ? 'bg-indigo-600 text-white border-indigo-600'
-                        : 'bg-white text-gray-900 border-gray-300 hover:border-indigo-600'
-                    }`}
-                    data-testid={`category-${category.value}`}
-                    aria-label={`Filter by ${category.label}`}
-                  >
-                    <div className="text-center">
-                      <div className="text-2xl mb-2">
-                        {category.value === 'concert' && '🎵'}
-                        {category.value === 'conference' && '💼'}
-                        {category.value === 'sports' && '⚽'}
-                        {category.value === 'workshop' && '🎨'}
-                        {category.value === 'party' && '🎉'}
-                      </div>
-                      <div className="text-sm font-medium">{category.label}</div>
-                    </div>
-                  </button>
-                ))}
+          {/* Statistics Section */}
+          <div className="grid grid-cols-1 md:grid-cols-4 gap-8 mb-12" data-testid="statistics">
+            <div className="text-center">
+              <div className="bg-white rounded-lg shadow-sm p-6 mb-4">
+                <Users className="h-8 w-8 text-indigo-600 mx-auto mb-2" />
+                <h3 className="text-lg font-semibold text-gray-900">Events Listed</h3>
+                <p className="text-2xl font-bold text-indigo-600">1,200+</p>
               </div>
-            </div>
-
-            {/* Statistics */}
-            <div className="grid grid-cols-1 md:grid-cols-4 gap-8 mb-12" data-testid="statistics">
-              <div className="text-center">
-                <div className="inline-flex items-center justify-center w-16 h-16 bg-indigo-100 rounded-full mb-4">
-                  <Ticket className="h-8 w-8 text-indigo-600" />
-                </div>
-                <div className="text-3xl font-bold text-gray-900 mb-1">1,200+</div>
-                <div className="text-gray-600">Events Listed</div>
+              <div className="bg-white rounded-lg shadow-sm p-6 mb-4">
+                <Calendar className="h-8 w-8 text-green-600 mx-auto mb-2" />
+                <h3 className="text-lg font-semibold text-gray-900">Active Users</h3>
+                <p className="text-2xl font-bold text-green-600">50K+</p>
               </div>
-              <div className="text-center">
-                <div className="inline-flex items-center justify-center w-16 h-16 bg-green-100 rounded-full mb-4">
-                  <Users className="h-8 w-8 text-green-600" />
-                </div>
-                <div className="text-3xl font-bold text-gray-900 mb-1">50K+</div>
-                <div className="text-gray-600">Active Users</div>
+              <div className="bg-white rounded-lg shadow-sm p-6 mb-4">
+                <Star className="h-8 w-8 text-yellow-500 mx-auto mb-2" />
+                <h3 className="text-lg font-semibold text-gray-900">Average Rating</h3>
+                <p className="text-2xl font-bold text-yellow-500">4.8</p>
               </div>
-              <div className="text-center">
-                <div className="inline-flex items-center justify-center w-16 h-16 bg-yellow-100 rounded-full mb-4">
-                  <Star className="h-8 w-8 text-yellow-600" />
-                </div>
-                <div className="text-3xl font-bold text-gray-900 mb-1">4.8</div>
-                <div className="text-gray-600">Average Rating</div>
-              </div>
-              <div className="text-center">
-                <div className="inline-flex items-center justify-center w-16 h-16 bg-purple-100 rounded-full mb-4">
-                  <TrendingUp className="h-8 w-8 text-purple-600" />
-                </div>
-                <div className="text-3xl font-bold text-gray-900 mb-1">98%</div>
-                <div className="text-gray-600">Satisfaction</div>
-              </div>
-            </div>
-
-            {/* CTA Section */}
-            <div className="bg-gradient-to-r from-indigo-600 to-purple-600 rounded-2xl p-12 text-center text-white" data-testid="cta-section">
-              <h2 className="text-3xl font-bold mb-4">Ready to Host Your Own Event?</h2>
-              <p className="text-xl mb-8 text-indigo-100">Join thousands of event organizers who trust our platform</p>
-              <div className="flex flex-col sm:flex-row gap-4 justify-center">
-                <Link
-                  to="/register"
-                  className="inline-flex items-center px-8 py-3 bg-white text-indigo-600 rounded-md hover:bg-gray-100 transition-colors duration-200 font-medium"
-                  data-testid="get-started-button"
-                >
-                  Get Started Today
-                  <ArrowRight className="ml-2 h-5 w-5" />
-                </Link>
-                <Link
-                  to="/events"
-                  className="inline-flex items-center px-8 py-3 bg-indigo-700 text-white rounded-md hover:bg-indigo-800 transition-colors duration-200 font-medium"
-                  data-testid="browse-events-button"
-                >
-                  Browse All Events
-                </Link>
+              <div className="bg-white rounded-lg shadow-sm p-6 mb-4">
+                <TrendingUp className="h-8 w-8 text-purple-600 mx-auto mb-2" />
+                <h3 className="text-lg font-semibold text-gray-900">Satisfaction</h3>
+                <p className="text-2xl font-bold text-purple-600">98%</p>
               </div>
             </div>
           </div>
-        </section>
-      )}
+
+          {/* CTA Section */}
+          <section className="bg-gradient-to-r from-indigo-600 to-purple-700 text-white py-16" data-testid="cta-section">
+            <div className="container mx-auto px-4">
+              <div className="max-w-4xl mx-auto text-center">
+                <h2 className="text-3xl font-bold mb-4">Ready to Host Your Own Event?</h2>
+                <p className="text-xl mb-8">Join thousands of event organizers who trust our platform</p>
+                <div className="flex flex-col sm:flex-row gap-4 justify-center">
+                  <Link
+                    to="/events/create"
+                    className="px-8 py-3 bg-white text-indigo-600 rounded-md hover:bg-indigo-700 transition-colors duration-200 font-medium"
+                    aria-label="Create new event"
+                  >
+                    Get Started Today
+                  </Link>
+                  <Link
+                    to="/events/create"
+                    className="px-8 py-3 bg-transparent border-2 border-white text-indigo-600 rounded-md hover:bg-white hover:text-indigo-700 transition-colors duration-200 font-medium"
+                    aria-label="Learn more"
+                  >
+                    Browse All Events
+                  </Link>
+                </div>
+              </div>
+            </div>
+          </section>
+        </div>
+      </section>
     </div>
   );
 };
-
-const HomeWithErrorBoundary = () => (
-  <ErrorBoundary
-    fallback={
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-        <div className="text-center p-8">
-          <AlertTriangle className="h-12 w-12 text-red-500 mx-auto mb-4" />
-          <h2 className="text-2xl font-bold text-gray-900 mb-2">Something went wrong</h2>
-          <p className="text-gray-600 mb-4">We're having trouble loading events. Please try again.</p>
-          <button
-            onClick={() => window.location.reload()}
-            className="px-6 py-2 bg-indigo-600 text-white rounded-md hover:bg-indigo-700"
-          >
-            Reload Page
-          </button>
-        </div>
-      </div>
-    }
-  >
-    <Home />
-  </ErrorBoundary>
-);
 
 export default Home;
