@@ -64,10 +64,16 @@ const EventCard = ({ event, showActions = true }) => {
         {/* Action Buttons */}
         {showActions && (
           <div className="absolute top-3 right-3 flex space-x-2">
-            <button className="p-2 bg-white/90 backdrop-blur-sm rounded-full hover:bg-white transition-colors duration-200">
+            <button 
+              className="p-2 bg-white/90 backdrop-blur-sm rounded-full hover:bg-white transition-colors duration-200"
+              aria-label="Add to favorites"
+            >
               <Heart className="h-4 w-4 text-gray-600" />
             </button>
-            <button className="p-2 bg-white/90 backdrop-blur-sm rounded-full hover:bg-white transition-colors duration-200">
+            <button 
+              className="p-2 bg-white/90 backdrop-blur-sm rounded-full hover:bg-white transition-colors duration-200"
+              aria-label="Share event"
+            >
               <Share2 className="h-4 w-4 text-gray-600" />
             </button>
           </div>
@@ -151,6 +157,27 @@ const EventCard = ({ event, showActions = true }) => {
           </div>
         )}
 
+        {/* Rating */}
+        {event.rating && (
+          <div className="flex items-center mb-4">
+            <div className="flex items-center">
+              {[...Array(5)].map((_, i) => (
+                <Star
+                  key={i}
+                  className={`h-4 w-4 ${
+                    i < Math.floor(event.rating)
+                      ? 'text-yellow-400 fill-current'
+                      : 'text-gray-300'
+                  }`}
+                />
+              ))}
+            </div>
+            <span className="ml-2 text-sm text-gray-600">
+              {event.rating.toFixed(1)} ({event.reviews || 0} reviews)
+            </span>
+          </div>
+        )}
+
         {/* Tags */}
         {event.tags && event.tags.length > 0 && (
           <div className="flex flex-wrap gap-2 mb-4">
@@ -175,16 +202,23 @@ const EventCard = ({ event, showActions = true }) => {
           <Link
             to={`/events/${event.id}`}
             className="flex-1 flex items-center justify-center px-4 py-2 bg-indigo-600 text-white text-sm font-medium rounded-md hover:bg-indigo-700 transition-colors duration-200"
+            aria-label="View event details"
           >
             <Eye className="h-4 w-4 mr-2" />
             View Details
           </Link>
           {showActions && (
             <>
-              <button className="flex items-center justify-center px-3 py-2 border border-gray-300 text-gray-700 text-sm font-medium rounded-md hover:bg-gray-50 transition-colors duration-200">
+              <button 
+                className="flex items-center justify-center px-3 py-2 border border-gray-300 text-gray-700 text-sm font-medium rounded-md hover:bg-gray-50 transition-colors duration-200"
+                aria-label="Add to favorites"
+              >
                 <Heart className="h-4 w-4" />
               </button>
-              <button className="flex items-center justify-center px-3 py-2 border border-gray-300 text-gray-700 text-sm font-medium rounded-md hover:bg-gray-50 transition-colors duration-200">
+              <button 
+                className="flex items-center justify-center px-3 py-2 border border-gray-300 text-gray-700 text-sm font-medium rounded-md hover:bg-gray-50 transition-colors duration-200"
+                aria-label="Share event"
+              >
                 <Share2 className="h-4 w-4" />
               </button>
             </>
