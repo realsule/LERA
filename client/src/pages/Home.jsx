@@ -79,6 +79,31 @@ const MOCK_EVENTS = [
   }
 ];
 
+// A/B Testing Framework
+const useABTest = (testName, variants) => {
+  const [variant, setVariant] = useState('control');
+  
+  useEffect(() => {
+    // Simple hash-based assignment for demo
+    const userId = 'user_' + Math.random().toString(36).substr(2, 9);
+    const hash = userId.split('').reduce((a, b) => {
+      a = ((a << 5) - a) + b.charCodeAt(0);
+      return a & a;
+    }, 0);
+    const variantIndex = Math.abs(hash) % variants.length;
+    const assignedVariant = variants[variantIndex];
+    
+    setVariant(assignedVariant);
+    trackEvent('ab_test_assigned', {
+      test_name: testName,
+      variant: assignedVariant,
+      user_id: userId
+    });
+  }, [testName, variants]);
+  
+  return variant;
+};
+
 // Performance monitoring
 const reportWebVitals = (metric) => {
   console.log('Web Vital:', metric);
@@ -177,6 +202,13 @@ const Home = () => {
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedCategory, setSelectedCategory] = useState('all');
   const [searchInputValue, setSearchInputValue] = useState('');
+  
+  // A/B Test for hero CTA text
+  const heroCTAVariant = useABTest('hero_cta_text', [
+    'Discover Amazing Events Near You',
+    'Find Your Next Experience',
+    'Explore Events Around You'
+  ]);
 
   // Fetch events on component mount
   useEffect(() => {
@@ -300,7 +332,7 @@ const Home = () => {
         <div className="container mx-auto px-4 py-20">
           <div className="max-w-4xl mx-auto text-center">
             <h1 className="text-5xl font-bold mb-6" data-testid="hero-title">
-              Discover Amazing Events Near You
+              {heroCTAVariant}
             </h1>
             <p className="text-xl mb-8 text-blue-100" data-testid="hero-description">
               Find and book tickets for concerts, conferences, sports, and more. Your next unforgettable experience is just a click away.
