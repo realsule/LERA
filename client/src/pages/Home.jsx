@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { Link } from 'react-router-dom';
 import { Helmet } from 'react-helmet-async';
+import { getCLS, getFID, getFCP, getLCP, getTTFB } from 'web-vitals';
 import { Search, Calendar, MapPin, Users, Star, ArrowRight, Ticket, TrendingUp, AlertTriangle } from 'lucide-react';
 import EventCard from "../components/events/EventCard";
 import ErrorBoundary from '../components/common/ErrorBoundary';
@@ -77,6 +78,21 @@ const MOCK_EVENTS = [
     tags: ['sports', 'fitness', 'competition']
   }
 ];
+
+// Performance monitoring
+const reportWebVitals = (metric) => {
+  console.log('Web Vital:', metric);
+  trackEvent('web_vital', {
+    name: metric.name,
+    value: metric.value,
+    rating: metric.rating,
+    delta: metric.delta,
+    id: metric.id
+  });
+  
+  // Example: Send to analytics service
+  // window.gtag('event', 'web_vital', metric);
+};
 
 // Analytics tracking
 const trackEvent = (eventName, properties = {}) => {
@@ -164,6 +180,13 @@ const Home = () => {
 
   // Fetch events on component mount
   useEffect(() => {
+    // Initialize Web Vitals monitoring
+    getCLS(reportWebVitals);
+    getFID(reportWebVitals);
+    getFCP(reportWebVitals);
+    getLCP(reportWebVitals);
+    getTTFB(reportWebVitals);
+
     const loadEvents = async () => {
       try {
         setLoading(true);
