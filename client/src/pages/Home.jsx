@@ -135,7 +135,25 @@ const Home = () => {
   // Use custom hook for filtering
   const filteredEvents = useEventFilter(events, searchQuery, selectedCategory);
 
-  // Debounced search effect
+  // Keyboard shortcuts
+  useEffect(() => {
+    const handleKeyDown = (e) => {
+      // Ctrl/Cmd + K for search focus
+      if ((e.ctrlKey || e.metaKey) && e.key === 'k') {
+        e.preventDefault();
+        document.querySelector('[data-testid="search-input"]')?.focus();
+      }
+      // Escape to clear search
+      if (e.key === 'Escape') {
+        setSearchInputValue('');
+        setSearchQuery('');
+        setSelectedCategory('all');
+      }
+    };
+
+    document.addEventListener('keydown', handleKeyDown);
+    return () => document.removeEventListener('keydown', handleKeyDown);
+  }, []);
   useEffect(() => {
     const timer = setTimeout(() => {
       setSearchQuery(searchInputValue);
