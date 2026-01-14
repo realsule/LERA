@@ -1,7 +1,8 @@
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { Link } from 'react-router-dom';
-import { Search, Calendar, MapPin, Users, Star, ArrowRight, Ticket, TrendingUp } from 'lucide-react';
+import { Search, Calendar, MapPin, Users, Star, ArrowRight, Ticket, TrendingUp, AlertTriangle } from 'lucide-react';
 import EventCard from "../components/events/EventCard";
+import ErrorBoundary from '../components/common/ErrorBoundary';
 
 // Constants for better maintainability
 const CATEGORIES = [
@@ -130,6 +131,28 @@ const fetchEvents = async () => {
     }, 100); // Reduced delay for faster testing
   });
 };
+
+const HomeWithErrorBoundary = () => (
+  <ErrorBoundary
+    fallback={
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <div className="text-center p-8">
+          <AlertTriangle className="h-12 w-12 text-red-500 mx-auto mb-4" />
+          <h2 className="text-2xl font-bold text-gray-900 mb-2">Something went wrong</h2>
+          <p className="text-gray-600 mb-4">We're having trouble loading events. Please try again.</p>
+          <button
+            onClick={() => window.location.reload()}
+            className="px-6 py-2 bg-indigo-600 text-white rounded-md hover:bg-indigo-700"
+          >
+            Reload Page
+          </button>
+        </div>
+      </div>
+    }
+  >
+    <Home />
+  </ErrorBoundary>
+);
 
 const Home = () => {
   const [events, setEvents] = useState([]);
@@ -422,4 +445,4 @@ const Home = () => {
   );
 };
 
-export default Home;
+export default HomeWithErrorBoundary;
