@@ -11,7 +11,7 @@ import {
   AlertCircle,
   CheckCircle
 } from 'lucide-react';
-import TicketSelector from '../components/Events/TicketSelector';
+import TicketSelector from '../components/events/TicketSelector';
 import { eventsAPI } from '../services/api';
 
 const EventDetail = () => {

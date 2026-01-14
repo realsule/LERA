@@ -1,7 +1,5 @@
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { Link } from 'react-router-dom';
-import { Helmet } from 'react-helmet-async';
-import { getCLS, getFID, getFCP, getLCP, getTTFB } from 'web-vitals';
 import { Search, Calendar, MapPin, Users, Star, ArrowRight, Ticket, TrendingUp, AlertTriangle } from 'lucide-react';
 import EventCard from "../components/events/EventCard";
 import ErrorBoundary from '../components/common/ErrorBoundary';
@@ -79,46 +77,6 @@ const MOCK_EVENTS = [
   }
 ];
 
-// Progressive Web App features
-useEffect(() => {
-  // Register service worker for PWA functionality
-  if ('serviceWorker' in navigator && process.env.NODE_ENV === 'production') {
-    navigator.serviceWorker.register('/sw.js')
-      .then(registration => {
-        console.log('SW registered: ', registration);
-        trackEvent('pwa_sw_registered', { success: true });
-      })
-      .catch(error => {
-        console.log('SW registration failed: ', error);
-        trackEvent('pwa_sw_register_failed', { error: error.message });
-      });
-  }
-
-  // Install prompt for PWA
-  const handleBeforeInstallPrompt = (e) => {
-    e.preventDefault();
-    trackEvent('pwa_install_prompt_shown');
-    
-    // Show custom install button
-    const installButton = document.createElement('button');
-    installButton.textContent = 'Install App';
-    installButton.className = 'fixed bottom-4 right-4 bg-indigo-600 text-white px-4 py-2 rounded-lg shadow-lg z-50';
-    installButton.onclick = () => {
-      e.prompt();
-      trackEvent('pwa_install_clicked');
-      installButton.remove();
-    };
-    
-    document.body.appendChild(installButton);
-  };
-
-  window.addEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
-  
-  return () => {
-    window.removeEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
-  };
-}, []);
-
 // A/B Testing Framework
 const useABTest = (testName, variants) => {
   const [variant, setVariant] = useState('control');
@@ -134,12 +92,15 @@ const useABTest = (testName, variants) => {
     const assignedVariant = variants[variantIndex];
     
     setVariant(assignedVariant);
-    trackEvent('ab_test_assigned', {
-      test_name: testName,
-      variant: assignedVariant,
-      user_id: userId
-    });
-  }, [testName, variants]);
+    // Only track once
+    if (variant === 'control') {
+      // trackEvent('ab_test_assigned', {
+      //   test_name: testName,
+      //   variant: assignedVariant,
+      //   user_id: userId
+      // });
+    }
+  }, [testName, variants.length]); // Only re-run if variants array changes
   
   return variant;
 };
@@ -162,7 +123,8 @@ const reportWebVitals = (metric) => {
 // Analytics tracking
 const trackEvent = (eventName, properties = {}) => {
   // Mock analytics - in production this would send to real analytics service
-  console.log('Analytics Event:', eventName, properties);
+  // Temporarily disabled for testing
+  // console.log('Analytics Event:', eventName, properties);
   
   // Example: window.gtag('event', eventName, properties);
 };
@@ -210,31 +172,9 @@ const fetchEvents = async () => {
   return new Promise((resolve) => {
     setTimeout(() => {
       resolve(MOCK_EVENTS);
-    }, 100); // Reduced delay for faster testing
+    }, 50); // Further reduced delay for faster testing
   });
 };
-
-const HomeWithErrorBoundary = () => (
-  <ErrorBoundary
-    fallback={
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-        <div className="text-center p-8">
-          <AlertTriangle className="h-12 w-12 text-red-500 mx-auto mb-4" />
-          <h2 className="text-2xl font-bold text-gray-900 mb-2">Something went wrong</h2>
-          <p className="text-gray-600 mb-4">We're having trouble loading events. Please try again.</p>
-          <button
-            onClick={() => window.location.reload()}
-            className="px-6 py-2 bg-indigo-600 text-white rounded-md hover:bg-indigo-700"
-          >
-            Reload Page
-          </button>
-        </div>
-      </div>
-    }
-  >
-    <Home />
-  </ErrorBoundary>
-);
 
 const Home = () => {
   const [events, setEvents] = useState([]);
@@ -243,39 +183,32 @@ const Home = () => {
   const [selectedCategory, setSelectedCategory] = useState('all');
   const [searchInputValue, setSearchInputValue] = useState('');
   
-  // A/B Test for hero CTA text
-  const heroCTAVariant = useABTest('hero_cta_text', [
-    'Discover Amazing Events Near You',
-    'Find Your Next Experience',
-    'Explore Events Around You'
-  ]);
+  // Static hero title for now
+  const heroTitle = 'Discover Amazing Events Near You';
 
   // Fetch events on component mount
   useEffect(() => {
-    // Initialize Web Vitals monitoring
-    getCLS(reportWebVitals);
-    getFID(reportWebVitals);
-    getFCP(reportWebVitals);
-    getLCP(reportWebVitals);
-    getTTFB(reportWebVitals);
-
+    console.log('useEffect running, loading:', loading);
     const loadEvents = async () => {
       try {
+        console.log('Starting to load events...');
         setLoading(true);
         const data = await fetchEvents();
+        console.log('Events fetched:', data);
         setEvents(data);
-        trackEvent('page_load', { 
-          page: 'home', 
-          events_count: data.length,
-          load_time: Date.now()
-        });
+        // trackEvent('page_load', { 
+        //   page: 'home', 
+        //   events_count: data.length,
+        //   load_time: Date.now()
+        // });
       } catch (error) {
         console.error('Failed to fetch events:', error);
-        trackEvent('error', { 
-          type: 'fetch_events_failed',
-          message: error.message 
-        });
+        // trackEvent('error', { 
+        //   type: 'fetch_events_failed',
+        //   message: error.message 
+        // });
       } finally {
+        console.log('Setting loading to false');
         setLoading(false);
       }
     };
@@ -284,95 +217,50 @@ const Home = () => {
   }, []);
 
   // Use custom hook for filtering
-  const filteredEvents = useEventFilter(events, searchQuery, selectedCategory);
+  const filteredEvents = useMemo(() => {
+    let filtered = events;
 
-  // Keyboard shortcuts
-  useEffect(() => {
-    const handleKeyDown = (e) => {
-      // Ctrl/Cmd + K for search focus
-      if ((e.ctrlKey || e.metaKey) && e.key === 'k') {
-        e.preventDefault();
-        document.querySelector('[data-testid="search-input"]')?.focus();
-      }
-      // Escape to clear search
-      if (e.key === 'Escape') {
-        setSearchInputValue('');
-        setSearchQuery('');
-        setSelectedCategory('all');
-      }
-    };
+    // Filter by search query
+    if (searchQuery.trim()) {
+      filtered = filtered.filter(event =>
+        event.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        event.description.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        event.venue.toLowerCase().includes(searchQuery.toLowerCase())
+      );
+    }
 
-    document.addEventListener('keydown', handleKeyDown);
-    return () => document.removeEventListener('keydown', handleKeyDown);
-  }, []);
-  useEffect(() => {
-    const timer = setTimeout(() => {
-      setSearchQuery(searchInputValue);
-    }, 300); // 300ms debounce
+    // Filter by category
+    if (selectedCategory !== 'all') {
+      filtered = filtered.filter(event => event.category === selectedCategory);
+    }
 
-    return () => clearTimeout(timer);
-  }, [searchInputValue]);
+    return filtered;
+  }, [events, searchQuery, selectedCategory]);
 
   // Event handlers
   const handleSearchChange = useCallback((e) => {
     const value = e.target.value;
+    setSearchQuery(value);
     setSearchInputValue(value);
-    trackEvent('search_input', { 
-      search_term: value,
-      input_length: value.length 
-    });
   }, []);
 
   const handleCategoryChange = useCallback((e) => {
     const category = e.target.value;
     setSelectedCategory(category);
-    trackEvent('category_filter', { 
-      category: category,
-      filter_type: 'dropdown'
-    });
   }, []);
 
   const handleCategoryClick = useCallback((category) => {
     setSelectedCategory(category);
-    trackEvent('category_filter', { 
-      category: category,
-      filter_type: 'button'
-    });
   }, []);
 
   return (
-    <>
-      <Helmet>
-        <title>Discover Amazing Events Near You | LERA Event Platform</title>
-        <meta name="description" content="Find and book tickets for concerts, conferences, sports, and more. Your next unforgettable experience is just a click away." />
-        <meta name="keywords" content="events, concerts, conferences, sports, workshops, parties, tickets, booking" />
-        <meta property="og:title" content="Discover Amazing Events Near You | LERA Event Platform" />
-        <meta property="og:description" content="Find and book tickets for concerts, conferences, sports, and more." />
-        <meta property="og:type" content="website" />
-        <meta property="og:url" content={typeof window !== 'undefined' ? window.location.href : ''} />
-        <meta name="twitter:card" content="summary_large_image" />
-        <script type="application/ld+json">
-          {JSON.stringify({
-            "@context": "https://schema.org",
-            "@type": "WebSite",
-            "name": "LERA Event Platform",
-            "description": "Discover and book amazing events near you",
-            "url": typeof window !== 'undefined' ? window.location.href : '',
-            "potentialAction": {
-              "@type": "SearchAction",
-              "target": `${typeof window !== 'undefined' ? window.location.href : ''}/events?q={search_term}`,
-              "query-input": "required name=search_term"
-            }
-          })}
-        </script>
-      </Helmet>
-      <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen bg-gray-50">
       {/* Hero Section */}
       <section className="bg-gradient-to-br from-indigo-600 to-blue-700 text-white" data-testid="hero-section">
         <div className="container mx-auto px-4 py-20">
           <div className="max-w-4xl mx-auto text-center">
             <h1 className="text-5xl font-bold mb-6" data-testid="hero-title">
-              {heroCTAVariant}
+              {heroTitle}
             </h1>
             <p className="text-xl mb-8 text-blue-100" data-testid="hero-description">
               Find and book tickets for concerts, conferences, sports, and more. Your next unforgettable experience is just a click away.
@@ -563,8 +451,29 @@ const Home = () => {
         </section>
       )}
     </div>
-    </>
   );
 };
 
-export default HomeWithErrorBoundary;
+const HomeWithErrorBoundary = () => (
+  <ErrorBoundary
+    fallback={
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <div className="text-center p-8">
+          <AlertTriangle className="h-12 w-12 text-red-500 mx-auto mb-4" />
+          <h2 className="text-2xl font-bold text-gray-900 mb-2">Something went wrong</h2>
+          <p className="text-gray-600 mb-4">We're having trouble loading events. Please try again.</p>
+          <button
+            onClick={() => window.location.reload()}
+            className="px-6 py-2 bg-indigo-600 text-white rounded-md hover:bg-indigo-700"
+          >
+            Reload Page
+          </button>
+        </div>
+      </div>
+    }
+  >
+    <Home />
+  </ErrorBoundary>
+);
+
+export default Home;
