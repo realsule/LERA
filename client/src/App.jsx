@@ -12,9 +12,11 @@ import ProtectedRoute from './layout/ProtectedRoute';
 
 function App() {
   return (
-    <ErrorBoundary>
-      <AuthProvider>
-        <Router>
+    // Router must wrap providers/components that use react-router hooks.
+    <Router>
+      <ErrorBoundary>
+        // AuthProvider is app-wide; ProtectedRoute enforces auth/roles where needed.
+        <AuthProvider>
           <div className="min-h-screen bg-gray-50 flex flex-col">
             <Navbar />
             <main className="flex-grow container mx-auto px-4 py-8">
@@ -25,26 +27,32 @@ function App() {
                 <Route path="/unauthorized" element={<Unauthorized />} />
                 
                 {/* Protected Routes for IAM Requirements */}
-                <Route path="/dashboard" element={
-                  <ProtectedRoute roles={['admin', 'organizer', 'attendee']}>
-                    <Dashboard />
-                  </ProtectedRoute>
-                } />
+                <Route
+                  path="/dashboard"
+                  element={
+                    <ProtectedRoute roles={['admin', 'organizer', 'attendee']}>
+                      <Dashboard />
+                    </ProtectedRoute>
+                  }
+                />
                 
                 {/* Admin-only routes */}
-                <Route path="/admin" element={
-                  <ProtectedRoute roles={['admin']}>
-                    <Dashboard />
-                  </ProtectedRoute>
-                } />
+                <Route
+                  path="/admin"
+                  element={
+                    <ProtectedRoute roles={['admin']}>
+                      <Dashboard />
+                    </ProtectedRoute>
+                  }
+                />
               </Routes>
             </main>
             <Footer />
           </div>
-        </Router>
-      </AuthProvider>
-    </ErrorBoundary>
+        </AuthProvider>
+      </ErrorBoundary>
+    </Router>
   );
-}
+};
 
 export default App;

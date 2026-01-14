@@ -1,5 +1,4 @@
 import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
-import { useNavigate } from 'react-router-dom';
 
 const AuthContext = createContext();
 
@@ -16,7 +15,6 @@ export const AuthProvider = ({ children }) => {
   const [token, setToken] = useState(localStorage.getItem('token'));
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
-  const navigate = useNavigate();
 
   // Initialize auth state from localStorage
   useEffect(() => {
@@ -76,7 +74,7 @@ export const AuthProvider = ({ children }) => {
     } finally {
       setLoading(false);
     }
-  }, [navigate]);
+  }, []);
 
   const register = useCallback(async (userData) => {
     try {
@@ -114,8 +112,7 @@ export const AuthProvider = ({ children }) => {
     setToken(null);
     localStorage.removeItem('token');
     localStorage.removeItem('user');
-    navigate('/');
-  }, [navigate]);
+  }, []);
 
   const isAuthenticated = () => {
     return !!token && !!user;
