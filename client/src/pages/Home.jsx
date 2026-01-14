@@ -99,6 +99,21 @@ const useEventFilter = (events, searchQuery, selectedCategory) => {
   }, [events, searchQuery, selectedCategory]);
 };
 
+// Loading Skeleton Component
+const EventSkeleton = () => (
+  <div className="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden animate-pulse">
+    <div className="h-48 bg-gray-200"></div>
+    <div className="p-4">
+      <div className="h-4 bg-gray-200 rounded mb-2 w-3/4"></div>
+      <div className="h-3 bg-gray-200 rounded mb-4 w-1/2"></div>
+      <div className="space-y-2">
+        <div className="h-3 bg-gray-200 rounded w-1/4"></div>
+        <div className="h-3 bg-gray-200 rounded w-1/4"></div>
+      </div>
+    </div>
+  </div>
+);
+
 // Mock API call function
 const fetchEvents = async () => {
   return new Promise((resolve) => {
@@ -229,16 +244,19 @@ const Home = () => {
 
       {/* Loading State */}
       {loading && (
-        <div className="flex justify-center items-center py-20" data-testid="loading-container">
-          <div className="text-center">
-            <div 
-              className="animate-spin rounded-full h-12 w-12 border-b-2 border-indigo-600 mx-auto mb-4"
-              role="status"
-              aria-label="Loading events"
-            ></div>
-            <p className="text-gray-600">Loading amazing events...</p>
+        <section className="py-12" data-testid="loading-section">
+          <div className="container mx-auto px-4">
+            <div className="mb-8">
+              <h2 className="text-3xl font-bold text-gray-900 mb-4">Loading Events</h2>
+              <p className="text-gray-600">Finding amazing events for you...</p>
+            </div>
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+              {[1, 2, 3].map(i => (
+                <EventSkeleton key={i} />
+              ))}
+            </div>
           </div>
-        </div>
+        </section>
       )}
 
       {/* Events Section */}
