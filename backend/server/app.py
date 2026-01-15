@@ -2,7 +2,11 @@ from flask import Flask, jsonify
 from flask_migrate import Migrate
 from flask_cors import CORS
 from models import db
+<<<<<<< HEAD
 from server.config import Config
+=======
+from config import Config
+>>>>>>> main
 
 # Import blueprints
 from routes.auth import auth_bp

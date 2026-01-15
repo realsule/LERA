@@ -28,11 +28,11 @@ export default defineConfig({
       // Frontend makes requests to /api/... (see src/services/api.js)
       // Vite proxies these requests to the backend server during development
       '/api': {
-        target: 'http://localhost:5000', // Backend server port (matches netlify.toml)
+        target: 'http://127.0.0.1:5000', // Backend server port
         changeOrigin: true, // Required for virtual hosted sites
         // Remove the /api prefix before sending to backend
         // This allows clean backend routes without /api prefix
-        // Example: GET /api/events -> GET http://localhost:5000/events
+        // Example: GET /api/events -> GET http://127.0.0.1:5000/events
         rewrite: (path) => path.replace(/^\/api/, ''),
       },
     },
