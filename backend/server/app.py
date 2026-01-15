@@ -21,8 +21,11 @@ def create_app():
     app = Flask(__name__)
     app.config.from_object(Config)
     
-    # Enable CORS
-    CORS(app, supports_credentials=True)
+    # Enable CORS - Allow frontend origins
+    frontend_url = os.environ.get('FRONTEND_URL', 'http://localhost:5173')
+    CORS(app, 
+         origins=[frontend_url, 'http://localhost:5173', 'http://localhost:3000'],
+         supports_credentials=True)
     
     # Initialize extensions
     db.init_app(app)
@@ -55,4 +58,5 @@ def create_app():
 
 if __name__ == '__main__':
     app = create_app()
-    app.run(port=5555, debug=True)
+    port = int(os.environ.get('PORT', 5555))
+    app.run(host='0.0.0.0', port=port, debug=False)
