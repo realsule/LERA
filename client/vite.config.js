@@ -28,11 +28,12 @@ export default defineConfig({
       // Frontend makes requests to /api/... (see src/services/api.js)
       // Vite proxies these requests to the backend server during development
       '/api': {
-        target: 'http://127.0.0.1:5000', // Backend server port
+        target: 'https://your-backend-app.onrender.com', // Render backend URL
         changeOrigin: true, // Required for virtual hosted sites
+        secure: true, // Required for HTTPS
         // Keep the /api prefix when forwarding to backend
         // Backend routes are registered with /api prefix (see backend/server/app.py)
-        // Example: GET /api/events -> GET http://127.0.0.1:5000/api/events
+        // Example: GET /api/events -> GET https://your-backend-app.onrender.com/api/events
       },
     },
   },

@@ -28,19 +28,26 @@ const Login = () => {
     validationSchema: authSchemas.login,
     onSubmit: async (values, { setSubmitting }) => {
       setFieldErrors({});
-      const result = await login(values);
-      
-      if (result.success) {
-        navigate(from, { replace: true });
-      } else {
-        // Handle specific field errors if they exist
-        if (result.error.includes('email')) {
-          setFieldErrors({ email: result.error });
-        } else if (result.error.includes('password')) {
-          setFieldErrors({ password: result.error });
+      try {
+        const result = await login(values);
+        
+        if (result && result.success) {
+          navigate(from, { replace: true });
+        } else {
+          // Handle specific field errors if they exist
+          const errorMsg = result?.error || 'Login failed. Please check your credentials.';
+          if (errorMsg.includes('email')) {
+            setFieldErrors({ email: errorMsg });
+          } else if (errorMsg.includes('password')) {
+            setFieldErrors({ password: errorMsg });
+          }
         }
+      } catch (err) {
+        console.error('Login error:', err);
+        setFieldErrors({ email: 'Login failed. Please try again.' });
+      } finally {
+        setSubmitting(false);
       }
-      setSubmitting(false);
     },
   });
 

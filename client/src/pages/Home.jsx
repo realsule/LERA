@@ -75,6 +75,7 @@ const Home = () => {
         console.log('🔄 Fetching events from backend...');
         
         const response = await eventsAPI.getAll().catch((err) => {
+          console.error('❌ API Error:', err);
           if (!err.response) {
             throw new Error('Server is under maintenance. Please try again later.');
           }
@@ -87,6 +88,11 @@ const Home = () => {
         console.log('✅ Events received in Frontend:', backendEvents);
         console.log('✅ Number of events:', backendEvents.length);
         console.log('✅ First event structure:', backendEvents[0] || 'No events');
+        
+        // If no events, log a warning
+        if (backendEvents.length === 0) {
+          console.warn('⚠️ No events returned from backend. Database might be empty or backend needs restart.');
+        }
         
         // Transform backend data to match frontend component expectations
         const transformedEvents = backendEvents

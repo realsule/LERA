@@ -125,11 +125,20 @@ export const AuthProvider = ({ children }) => {
       const response = await authAPI.login(loginData).catch((err) => {
         // Handle network errors
         if (!err.response) {
-          setError('Server is under maintenance. Please try again later.');
-          throw { response: null, message: 'Server is under maintenance. Please try again later.' };
+          const errorMsg = 'Server is under maintenance. Please try again later.';
+          setError(errorMsg);
+          return { success: false, error: errorMsg };
         }
-        throw err;
+        // Handle API errors
+        const errorMsg = err.response?.data?.error || err.message || 'Login failed. Please check your credentials.';
+        setError(errorMsg);
+        return { success: false, error: errorMsg };
       });
+      
+      // If response is an error object, return it
+      if (response && !response.data) {
+        return response;
+      }
       
       const userData = response.data;
       

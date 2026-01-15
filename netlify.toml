@@ -7,5 +7,5 @@
   command = "npm --prefix client run dev"
   targetPort = 5173
   port = 8888
-  # Auto-link frontend to local backend port
-  env = { VITE_API_URL = "http://127.0.0.1:5000" } 
+  # Connect to Render backend - replace with your actual Render URL
+  env = { VITE_API_URL = "https://your-backend-app.onrender.com" }

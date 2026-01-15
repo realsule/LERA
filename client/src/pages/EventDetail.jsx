@@ -34,26 +34,26 @@ const EventDetail = () => {
       category: backendEvent.category?.name?.toLowerCase() || 'other',
       date: backendEvent.date,
       time: eventDate.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' }),
-      venue: {
+    venue: {
         name: backendEvent.location || 'Venue TBA',
         address: backendEvent.location || '',
         capacity: backendEvent.capacity || 0
-      },
-      ticketTypes: [
-        { 
+    },
+    ticketTypes: [
+      { 
           id: 'general', 
-          name: 'General Admission', 
+        name: 'General Admission', 
           price: backendEvent.price || 0, 
           quantity: Math.floor((backendEvent.capacity || 0) * 0.8),
           description: 'Access to all general areas'
         }
-      ],
-      image: 'https://images.unsplash.com/photo-1459749411175-04bf5292ceea?w=800&h=400&fit=crop',
+    ],
+    image: 'https://images.unsplash.com/photo-1459749411175-04bf5292ceea?w=800&h=400&fit=crop',
       organizer: backendEvent.organizer?.username || 'Event Organizer',
       totalTickets: backendEvent.capacity || 0,
       availableTickets: Math.floor((backendEvent.capacity || 0) * 0.8),
       tags: [],
-      ageRestriction: 'All ages',
+    ageRestriction: 'All ages',
       features: []
     };
   };
@@ -66,7 +66,7 @@ const EventDetail = () => {
         
         const response = await eventsAPI.getById(id);
         const transformedEvent = transformEventData(response.data);
-        
+
         if (!transformedEvent) {
           setError('Event data is invalid.');
           return;
@@ -80,7 +80,7 @@ const EventDetail = () => {
         } else if (!err.response) {
           setError('Server is under maintenance. Please try again later.');
         } else {
-          setError('Failed to load event details. Please try again later.');
+        setError('Failed to load event details. Please try again later.');
         }
       } finally {
         setLoading(false);
@@ -88,7 +88,7 @@ const EventDetail = () => {
     };
 
     if (id) {
-      fetchEvent();
+    fetchEvent();
     } else {
       setError('Invalid event ID.');
       setLoading(false);
@@ -154,8 +154,8 @@ const EventDetail = () => {
   const formatDate = (dateString) => {
     if (!dateString) return 'Date TBA';
     try {
-      const options = { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' };
-      return new Date(dateString).toLocaleDateString('en-US', options);
+    const options = { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' };
+    return new Date(dateString).toLocaleDateString('en-US', options);
     } catch (e) {
       return 'Invalid date';
     }
@@ -164,10 +164,10 @@ const EventDetail = () => {
   const formatTime = (timeString) => {
     if (!timeString) return 'Time TBA';
     try {
-      const [hours, minutes] = timeString.split(':');
-      const hour = parseInt(hours);
-      const ampm = hour >= 12 ? 'PM' : 'AM';
-      const displayHour = hour % 12 || 12;
+    const [hours, minutes] = timeString.split(':');
+    const hour = parseInt(hours);
+    const ampm = hour >= 12 ? 'PM' : 'AM';
+    const displayHour = hour % 12 || 12;
       return `${displayHour}:${minutes || '00'} ${ampm}`;
     } catch (e) {
       return 'Invalid time';
@@ -222,15 +222,15 @@ const EventDetail = () => {
             <h1 className="text-4xl font-bold text-white mb-2">{event?.title || 'Event'}</h1>
             <div className="flex items-center space-x-4 text-white/90">
               {event?.category && (
-                <span className="px-3 py-1 bg-white/20 backdrop-blur-sm rounded-full text-sm">
+              <span className="px-3 py-1 bg-white/20 backdrop-blur-sm rounded-full text-sm">
                   {event.category.charAt(0).toUpperCase() + event.category.slice(1)}
-                </span>
+              </span>
               )}
               {event?.availableTickets !== undefined && (
-                <span className="flex items-center">
-                  <Users className="h-4 w-4 mr-1" />
-                  {event.availableTickets} tickets left
-                </span>
+              <span className="flex items-center">
+                <Users className="h-4 w-4 mr-1" />
+                {event.availableTickets} tickets left
+              </span>
               )}
             </div>
           </div>
@@ -252,46 +252,46 @@ const EventDetail = () => {
               {/* Event Details Grid */}
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 {event?.date && (
-                  <div className="flex items-start space-x-3">
-                    <Calendar className="h-5 w-5 text-indigo-600 mt-0.5" />
-                    <div>
-                      <div className="font-medium text-gray-900">Date</div>
-                      <div className="text-gray-600">{formatDate(event.date)}</div>
-                    </div>
+                <div className="flex items-start space-x-3">
+                  <Calendar className="h-5 w-5 text-indigo-600 mt-0.5" />
+                  <div>
+                    <div className="font-medium text-gray-900">Date</div>
+                    <div className="text-gray-600">{formatDate(event.date)}</div>
                   </div>
+                </div>
                 )}
 
                 {event?.time && (
-                  <div className="flex items-start space-x-3">
-                    <Clock className="h-5 w-5 text-indigo-600 mt-0.5" />
-                    <div>
-                      <div className="font-medium text-gray-900">Time</div>
-                      <div className="text-gray-600">{formatTime(event.time)}</div>
-                    </div>
+                <div className="flex items-start space-x-3">
+                  <Clock className="h-5 w-5 text-indigo-600 mt-0.5" />
+                  <div>
+                    <div className="font-medium text-gray-900">Time</div>
+                    <div className="text-gray-600">{formatTime(event.time)}</div>
                   </div>
+                </div>
                 )}
 
                 {event?.venue?.name && (
-                  <div className="flex items-start space-x-3">
-                    <MapPin className="h-5 w-5 text-indigo-600 mt-0.5" />
-                    <div>
-                      <div className="font-medium text-gray-900">Venue</div>
-                      <div className="text-gray-600">{event.venue.name}</div>
+                <div className="flex items-start space-x-3">
+                  <MapPin className="h-5 w-5 text-indigo-600 mt-0.5" />
+                  <div>
+                    <div className="font-medium text-gray-900">Venue</div>
+                    <div className="text-gray-600">{event.venue.name}</div>
                       {event.venue.address && (
-                        <div className="text-sm text-gray-500">{event.venue.address}</div>
+                    <div className="text-sm text-gray-500">{event.venue.address}</div>
                       )}
                     </div>
                   </div>
                 )}
 
                 {event?.venue?.capacity && (
-                  <div className="flex items-start space-x-3">
-                    <Users className="h-5 w-5 text-indigo-600 mt-0.5" />
-                    <div>
-                      <div className="font-medium text-gray-900">Capacity</div>
-                      <div className="text-gray-600">{event.venue.capacity} people</div>
-                    </div>
+                <div className="flex items-start space-x-3">
+                  <Users className="h-5 w-5 text-indigo-600 mt-0.5" />
+                  <div>
+                    <div className="font-medium text-gray-900">Capacity</div>
+                    <div className="text-gray-600">{event.venue.capacity} people</div>
                   </div>
+                </div>
                 )}
               </div>
 
@@ -329,28 +329,28 @@ const EventDetail = () => {
 
             {/* Organizer Info */}
             {event?.organizer && (
-              <div className="bg-white rounded-lg shadow-sm p-6">
-                <h3 className="text-xl font-bold text-gray-900 mb-4">Organized by</h3>
-                <div className="flex items-center justify-between">
-                  <div>
-                    <div className="font-medium text-gray-900">{event.organizer}</div>
-                    <div className="text-sm text-gray-600">Event Organizer</div>
-                  </div>
-                  <button className="px-4 py-2 border border-gray-300 text-gray-700 rounded-md hover:bg-gray-50 transition-colors duration-200">
-                    Follow
-                  </button>
+            <div className="bg-white rounded-lg shadow-sm p-6">
+              <h3 className="text-xl font-bold text-gray-900 mb-4">Organized by</h3>
+              <div className="flex items-center justify-between">
+                <div>
+                  <div className="font-medium text-gray-900">{event.organizer}</div>
+                  <div className="text-sm text-gray-600">Event Organizer</div>
                 </div>
+                <button className="px-4 py-2 border border-gray-300 text-gray-700 rounded-md hover:bg-gray-50 transition-colors duration-200">
+                  Follow
+                </button>
               </div>
+            </div>
             )}
           </div>
 
           {/* Sidebar - Ticket Selector */}
           {event && (
-            <div className="lg:col-span-1">
-              <div className="sticky top-4">
-                <TicketSelector event={event} onPurchase={handlePurchase} />
-              </div>
+          <div className="lg:col-span-1">
+            <div className="sticky top-4">
+              <TicketSelector event={event} onPurchase={handlePurchase} />
             </div>
+          </div>
           )}
         </div>
       </div>
