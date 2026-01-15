@@ -1,8 +1,12 @@
+import sys
+import os
+sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..'))
+
 from flask import Flask, jsonify
 from flask_migrate import Migrate
 from flask_cors import CORS
 from models import db
-from config import Config
+from server.config import Config
 
 # Import blueprints
 from routes.auth import auth_bp
@@ -17,8 +21,11 @@ def create_app():
     app = Flask(__name__)
     app.config.from_object(Config)
     
-    # Enable CORS
-    CORS(app, supports_credentials=True)
+    # Enable CORS - Allow frontend origins
+    frontend_url = os.environ.get('FRONTEND_URL', 'http://localhost:5173')
+    CORS(app, 
+         origins=[frontend_url, 'http://localhost:5173', 'http://localhost:3000'],
+         supports_credentials=True)
     
     # Initialize extensions
     db.init_app(app)
@@ -51,4 +58,5 @@ def create_app():
 
 if __name__ == '__main__':
     app = create_app()
-    app.run(port=5000, debug=True)
+    port = int(os.environ.get('PORT', 5555))
+    app.run(host='0.0.0.0', port=port, debug=False)

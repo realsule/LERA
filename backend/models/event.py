@@ -1,9 +1,8 @@
-from flask import Blueprint, request, jsonify, session
-from datetime import datetime
+from sqlalchemy_serializer import SerializerMixin
 from .user import db
-from routes.auth import login_required
 
-class Event(db.Model):
+
+class Event(db.Model, SerializerMixin):
     __tablename__ = 'events'
 
     id = db.Column(db.Integer, primary_key=True)
