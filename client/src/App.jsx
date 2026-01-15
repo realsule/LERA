@@ -1,14 +1,18 @@
 import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
+import { useEffect } from 'react';
 import { AuthProvider } from './context/AuthContext';
 import ErrorBoundary from './components/common/ErrorBoundary';
 import Navbar from './components/common/Navbar';
 import Footer from './components/common/Footer';
 import Home from './pages/Home';
+import Events from './pages/Events';
 import EventDetail from './pages/EventDetail';
 import Dashboard from './pages/Dashboard';
 import Login from './pages/Login';
+import About from './pages/About';
 import Unauthorized from './pages/Unauthorized';
 import ProtectedRoute from './layout/ProtectedRoute';
+import { checkHealth } from './services/api';
 
 /**
  * Main App Component
@@ -31,6 +35,14 @@ import ProtectedRoute from './layout/ProtectedRoute';
  */
 
 function App() {
+  // Check backend health on app load
+  useEffect(() => {
+    checkHealth().catch((error) => {
+      // Silently handle health check errors - Footer will show status
+      console.warn('Initial health check failed:', error);
+    });
+  }, []);
+
   return (
     // Router must wrap providers/components that use react-router hooks.
     // This ensures useNavigate, useParams, etc. work throughout the app.
@@ -44,8 +56,10 @@ function App() {
               <Routes>
                 {/* Public routes - accessible to all users */}
                 <Route path="/" element={<Home />} />
-                <Route path="/login" element={<Login />} />
+                <Route path="/about" element={<About />} />
+                <Route path="/events" element={<Events />} />
                 <Route path="/events/:id" element={<EventDetail />} />
+                <Route path="/login" element={<Login />} />
                 <Route path="/unauthorized" element={<Unauthorized />} />
                 
                 {/* Protected Routes for IAM Requirements */}

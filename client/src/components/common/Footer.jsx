@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { 
   Ticket, 
@@ -9,11 +9,35 @@ import {
   Twitter, 
   Instagram, 
   Linkedin,
-  Heart
+  Heart,
+  CheckCircle,
+  XCircle
 } from 'lucide-react';
+import { checkHealth } from '../../services/api';
 
 const Footer = () => {
   const currentYear = new Date().getFullYear();
+  const [systemStatus, setSystemStatus] = useState('checking');
+
+  // Check system health on component mount and periodically
+  useEffect(() => {
+    const checkSystemHealth = async () => {
+      try {
+        const result = await checkHealth();
+        setSystemStatus(result.status === 'healthy' ? 'healthy' : 'unhealthy');
+      } catch (error) {
+        setSystemStatus('unhealthy');
+      }
+    };
+
+    // Check immediately
+    checkSystemHealth();
+
+    // Check every 30 seconds
+    const interval = setInterval(checkSystemHealth, 30000);
+
+    return () => clearInterval(interval);
+  }, []);
 
   const footerLinks = {
     platform: [
@@ -200,6 +224,35 @@ const Footer = () => {
               <span>Made with</span>
               <Heart className="h-4 w-4 text-red-500 fill-current" />
               <span>for event lovers everywhere</span>
+            </div>
+
+            {/* System Status Badge */}
+            <div className="flex items-center space-x-2">
+              <span className="text-gray-400 text-sm">System Status:</span>
+              <div className={`flex items-center space-x-1 px-2 py-1 rounded-full text-xs font-medium ${
+                systemStatus === 'healthy' 
+                  ? 'bg-green-100 text-green-800' 
+                  : systemStatus === 'unhealthy'
+                  ? 'bg-red-100 text-red-800'
+                  : 'bg-yellow-100 text-yellow-800'
+              }`}>
+                {systemStatus === 'healthy' ? (
+                  <>
+                    <CheckCircle className="h-3 w-3" />
+                    <span>Online</span>
+                  </>
+                ) : systemStatus === 'unhealthy' ? (
+                  <>
+                    <XCircle className="h-3 w-3" />
+                    <span>Offline</span>
+                  </>
+                ) : (
+                  <>
+                    <div className="h-3 w-3 border-2 border-yellow-600 border-t-transparent rounded-full animate-spin"></div>
+                    <span>Checking...</span>
+                  </>
+                )}
+              </div>
             </div>
 
             <div className="flex space-x-6">

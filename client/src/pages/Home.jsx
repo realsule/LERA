@@ -1,7 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
-import { Search, Calendar, MapPin, Users, Star, ArrowRight, Ticket, TrendingUp } from 'lucide-react';
+import { Search, Calendar, MapPin, Users, Star, ArrowRight, Ticket, TrendingUp, AlertCircle } from 'lucide-react';
 import EventCard from "../components/events/EventCard";
+import { eventsAPI } from '../services/api';
 
 // Constants for better maintainability
 const CATEGORIES = [
@@ -13,101 +14,117 @@ const CATEGORIES = [
   { label: 'Parties', value: 'party' }
 ];
 
-// Mock events data
-const MOCK_EVENTS = [
-  {
-    id: '1',
-    title: 'Summer Music Festival 2024',
-    description: 'Experience the best of live music with top artists from around the world.',
-    category: 'concert',
-    date: '2024-07-15',
-    time: '18:00',
-    venue: 'Central Park Arena',
-    ticketTypes: [
-      { name: 'General Admission', price: 75, quantity: 500 },
-      { name: 'VIP Pass', price: 150, quantity: 100 }
-    ],
-    image: 'https://images.unsplash.com/photo-1459749411175-04bf5292ceea?w=400&h=250&fit=crop',
-    organizer: { firstName: 'John', lastName: 'Doe' },
-    totalTickets: 600,
-    availableTickets: 450,
-    rating: 4.5,
-    reviews: 128,
-    tags: ['music', 'festival', 'outdoor']
-  },
-  {
-    id: '2',
-    title: 'Tech Innovation Summit',
-    description: 'Join industry leaders for a deep dive into the latest technology trends.',
-    category: 'conference',
-    date: '2024-08-20',
-    time: '09:00',
-    venue: 'Convention Center',
-    ticketTypes: [
-      { name: 'Standard', price: 299, quantity: 200 },
-      { name: 'Premium', price: 599, quantity: 50 }
-    ],
-    image: 'https://images.unsplash.com/photo-1540575167028-0e7a0b6b5b1a?w=400&h=250&fit=crop',
-    organizer: { firstName: 'Jane', lastName: 'Smith' },
-    totalTickets: 250,
-    availableTickets: 180,
-    rating: 4.8,
-    reviews: 95,
-    tags: ['tech', 'innovation', 'networking']
-  },
-  {
-    id: '3',
-    title: 'Marathon Championship',
-    description: 'Challenge yourself in this exciting marathon event for all fitness levels.',
-    category: 'sports',
-    date: '2024-09-10',
-    time: '07:00',
-    venue: 'City Stadium',
-    ticketTypes: [
-      { name: 'Participant', price: 50, quantity: 1000 },
-      { name: 'VIP Package', price: 120, quantity: 100 }
-    ],
-    image: 'https://images.unsplash.com/photo-1571019613454-1cb2f99b2d8b?w=400&h=250&fit=crop',
-    organizer: { firstName: 'Mike', lastName: 'Johnson' },
-    totalTickets: 1100,
-    availableTickets: 850,
-    rating: 4.6,
-    reviews: 203,
-    tags: ['sports', 'fitness', 'competition']
-  }
-];
 
 const Home = () => {
   const [events, setEvents] = useState([]);
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedCategory, setSelectedCategory] = useState('all');
   const [searchInputValue, setSearchInputValue] = useState('');
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
 
-  // Fetch events on component mount
+  // Transform backend event data to match EventCard component expectations
+  // Backend returns: { id, title, description, date (ISO string), location, price, capacity, organizer_id, category_id }
+  const transformEventData = (backendEvent) => {
+    if (!backendEvent) return null;
+    
+    try {
+      // Parse the ISO date string from backend
+      const eventDate = backendEvent.date ? new Date(backendEvent.date) : new Date();
+      
+      return {
+        id: backendEvent.id || null,
+        title: backendEvent.title || 'Untitled Event',
+        description: backendEvent.description || 'No description available.',
+        // Backend only provides category_id, not category object, so we'll use a default
+        category: 'other', // Will be enhanced if backend includes category name
+        date: backendEvent.date || new Date().toISOString(),
+        time: eventDate.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' }),
+        venue: backendEvent.location || 'Venue TBA', // Backend uses 'location' not 'venue'
+        ticketTypes: [
+          { 
+            name: 'General Admission', 
+            price: backendEvent.price || 0, 
+            quantity: Math.floor((backendEvent.capacity || 0) * 0.8) 
+          }
+        ],
+        image: 'https://images.unsplash.com/photo-1459749411175-04bf5292ceea?w=400&h=250&fit=crop',
+        // Backend only provides organizer_id, not organizer object
+        organizer: { 
+          firstName: 'Event', 
+          lastName: 'Organizer' 
+        },
+        totalTickets: backendEvent.capacity || 0,
+        availableTickets: Math.floor((backendEvent.capacity || 0) * 0.8),
+        rating: 4.5,
+        reviews: 0,
+        tags: []
+      };
+    } catch (error) {
+      console.error('Error transforming event data:', error);
+      return null;
+    }
+  };
+
+  // Fetch events from backend on component mount
   useEffect(() => {
-    console.log('useEffect running');
-    const loadEvents = () => {
+    const loadEvents = async () => {
       try {
-        console.log('Loading events...');
-        // Simulate API call
-        setTimeout(() => {
-          console.log('Setting events:', MOCK_EVENTS);
-          setEvents(MOCK_EVENTS);
-        }, 100);
-      } catch (error) {
-        console.error('Failed to fetch events:', error);
+        setLoading(true);
+        setError(null);
+        console.log('🔄 Fetching events from backend...');
+        
+        const response = await eventsAPI.getAll().catch((err) => {
+          if (!err.response) {
+            throw new Error('Server is under maintenance. Please try again later.');
+          }
+          throw err;
+        });
+        
+        // Backend returns an array directly in response.data
+        const backendEvents = Array.isArray(response.data) ? response.data : [];
+        
+        console.log('✅ Events received in Frontend:', backendEvents);
+        console.log('✅ Number of events:', backendEvents.length);
+        console.log('✅ First event structure:', backendEvents[0] || 'No events');
+        
+        // Transform backend data to match frontend component expectations
+        const transformedEvents = backendEvents
+          .map(transformEventData)
+          .filter(event => event !== null); // Filter out any null transformations
+        
+        console.log('✅ Transformed events:', transformedEvents);
+        setEvents(transformedEvents);
+      } catch (err) {
+        console.error('❌ Failed to fetch events:', err);
+        
+        // Check if server is offline
+        if (!err.response) {
+          setError('Server is under maintenance. Please try again later.');
+        } else if (err.response?.status >= 500) {
+          setError('Server error. Please try again later.');
+        } else {
+          setError(err.response?.data?.error || err.message || 'Failed to load events. Please try again later.');
+        }
+        
+        // Fallback to empty array on error
+        setEvents([]);
+      } finally {
+        setLoading(false);
       }
     };
 
     loadEvents();
   }, []);
 
-  // Filter events
+  // Filter events with null checks
   const filteredEvents = events.filter(event => {
+    if (!event || !event.title) return false;
+    
     const matchesSearch = searchQuery.trim() === '' || 
-      event.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      event.description.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      event.venue.toLowerCase().includes(searchQuery.toLowerCase());
+      (event.title?.toLowerCase() || '').includes(searchQuery.toLowerCase()) ||
+      (event.description?.toLowerCase() || '').includes(searchQuery.toLowerCase()) ||
+      (typeof event.venue === 'string' ? event.venue.toLowerCase() : '').includes(searchQuery.toLowerCase());
     
     const matchesCategory = selectedCategory === 'all' || event.category === selectedCategory;
     
@@ -184,8 +201,32 @@ const Home = () => {
             <h2 className="text-3xl font-bold text-gray-900 mb-4">Featured Events</h2>
             <p className="text-gray-600 mb-8">Explore our handpicked selection of amazing events</p>
             
-            {filteredEvents.length === 0 ? (
-              <div className="text-center py-12" data-testid="no-events">
+            {/* Loading State */}
+            {loading && (
+              <div className="text-center py-12" data-testid="loading-events">
+                <div className="inline-block animate-spin rounded-full h-12 w-12 border-b-2 border-indigo-600"></div>
+                <p className="mt-4 text-gray-600">Loading events...</p>
+              </div>
+            )}
+
+            {/* Error State */}
+            {error && !loading && (
+              <div className="text-center py-12 bg-red-50 rounded-lg border border-red-200" data-testid="error-events">
+                <AlertCircle className="h-12 w-12 text-red-500 mx-auto mb-4" />
+                <p className="text-red-800 text-lg font-medium mb-2">Failed to load events</p>
+                <p className="text-red-600 mb-4">{error}</p>
+                <button
+                  onClick={() => window.location.reload()}
+                  className="px-6 py-2 bg-red-600 text-white rounded-md hover:bg-red-700 transition-colors duration-200"
+                >
+                  Retry
+                </button>
+              </div>
+            )}
+
+            {/* Empty State (no events found after filtering) */}
+            {!loading && !error && filteredEvents.length === 0 && events.length > 0 && (
+              <div className="text-center py-12" data-testid="no-events-filtered">
                 <p className="text-gray-500 text-lg">No events found matching your criteria.</p>
                 <p className="text-gray-400 mt-2">Try adjusting your search or filters.</p>
                 <button
@@ -200,14 +241,27 @@ const Home = () => {
                   Clear filters
                 </button>
               </div>
-            ) : (
+            )}
+
+            {/* Empty State (no events in database) */}
+            {!loading && !error && events.length === 0 && (
+              <div className="text-center py-12" data-testid="no-events">
+                <p className="text-gray-500 text-lg">No events available at the moment.</p>
+                <p className="text-gray-400 mt-2">Check back later for new events!</p>
+              </div>
+            )}
+
+            {/* Events Grid */}
+            {!loading && !error && filteredEvents.length > 0 && (
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6" data-testid="events-grid">
                 {filteredEvents.map(event => (
-                  <EventCard
-                    key={event.id}
-                    event={event}
-                    data-testid="event-card"
-                  />
+                  event && event.id ? (
+                    <EventCard
+                      key={event.id}
+                      event={event}
+                      data-testid="event-card"
+                    />
+                  ) : null
                 ))}
               </div>
             )}

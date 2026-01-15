@@ -22,75 +22,77 @@ const EventDetail = () => {
   const [isFavorited, setIsFavorited] = useState(false);
   const [showPurchaseModal, setShowPurchaseModal] = useState(false);
 
-  // Mock event data for development
-  const mockEvent = {
-    id: '1',
-    title: 'Summer Music Festival 2024',
-    description: 'Experience the best of live music with top artists from around the world. This incredible festival features multiple stages, food vendors, and an unforgettable atmosphere. Join thousands of music lovers for a day of amazing performances, great food, and fantastic vibes.',
-    category: 'concert',
-    date: '2024-07-15',
-    time: '18:00',
-    venue: {
-      name: 'Central Park Arena',
-      address: '123 Park Ave, New York, NY 10001',
-      capacity: 5000,
-    },
-    ticketTypes: [
-      { 
-        id: 'ga', 
-        name: 'General Admission', 
-        price: 75, 
-        quantity: 500,
-        description: 'Access to all general areas and stages'
+  // Transform backend event data to match component expectations
+  const transformEventData = (backendEvent) => {
+    if (!backendEvent) return null;
+    
+    const eventDate = new Date(backendEvent.date);
+    return {
+      id: backendEvent.id,
+      title: backendEvent.title || 'Untitled Event',
+      description: backendEvent.description || 'No description available.',
+      category: backendEvent.category?.name?.toLowerCase() || 'other',
+      date: backendEvent.date,
+      time: eventDate.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' }),
+      venue: {
+        name: backendEvent.location || 'Venue TBA',
+        address: backendEvent.location || '',
+        capacity: backendEvent.capacity || 0
       },
-      { 
-        id: 'vip', 
-        name: 'VIP Pass', 
-        price: 150, 
-        quantity: 100,
-        description: 'VIP access with premium viewing areas and complimentary drinks'
-      },
-      { 
-        id: 'vvip', 
-        name: 'VVIP Experience', 
-        price: 250, 
-        quantity: 25,
-        description: 'Ultimate experience with backstage access and meet & greet opportunities'
-      },
-    ],
-    image: 'https://images.unsplash.com/photo-1459749411175-04bf5292ceea?w=800&h=400&fit=crop',
-    organizer: 'Live Nation',
-    totalTickets: 625,
-    availableTickets: 450,
-    tags: ['music', 'festival', 'outdoor', 'summer'],
-    ageRestriction: 'All ages',
-    features: [
-      'Multiple stages with live performances',
-      'Food and beverage vendors',
-      'Merchandise stands',
-      'VIP areas with premium amenities',
-      'Professional security and medical staff'
-    ]
+      ticketTypes: [
+        { 
+          id: 'general', 
+          name: 'General Admission', 
+          price: backendEvent.price || 0, 
+          quantity: Math.floor((backendEvent.capacity || 0) * 0.8),
+          description: 'Access to all general areas'
+        }
+      ],
+      image: 'https://images.unsplash.com/photo-1459749411175-04bf5292ceea?w=800&h=400&fit=crop',
+      organizer: backendEvent.organizer?.username || 'Event Organizer',
+      totalTickets: backendEvent.capacity || 0,
+      availableTickets: Math.floor((backendEvent.capacity || 0) * 0.8),
+      tags: [],
+      ageRestriction: 'All ages',
+      features: []
+    };
   };
 
   useEffect(() => {
     const fetchEvent = async () => {
       try {
         setLoading(true);
-        // Uncomment when API is ready
-        // const response = await eventsAPI.getById(id);
-        // setEvent(response.data);
-
-        // Using mock data for now
-        setEvent(mockEvent);
+        setError(null);
+        
+        const response = await eventsAPI.getById(id);
+        const transformedEvent = transformEventData(response.data);
+        
+        if (!transformedEvent) {
+          setError('Event data is invalid.');
+          return;
+        }
+        
+        setEvent(transformedEvent);
       } catch (err) {
-        setError('Failed to load event details. Please try again later.');
+        console.error('Failed to fetch event:', err);
+        if (err.response?.status === 404) {
+          setError('Event not found.');
+        } else if (!err.response) {
+          setError('Server is under maintenance. Please try again later.');
+        } else {
+          setError('Failed to load event details. Please try again later.');
+        }
       } finally {
         setLoading(false);
       }
     };
 
-    fetchEvent();
+    if (id) {
+      fetchEvent();
+    } else {
+      setError('Invalid event ID.');
+      setLoading(false);
+    }
   }, [id]);
 
   const handlePurchase = (tickets) => {
@@ -101,10 +103,10 @@ const EventDetail = () => {
   };
 
   const handleShare = () => {
-    if (navigator.share) {
+    if (navigator.share && event) {
       navigator.share({
-        title: event.title,
-        text: event.description,
+        title: event.title || 'Event',
+        text: event.description || '',
         url: window.location.href,
       });
     } else {
@@ -150,16 +152,26 @@ const EventDetail = () => {
   }
 
   const formatDate = (dateString) => {
-    const options = { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' };
-    return new Date(dateString).toLocaleDateString('en-US', options);
+    if (!dateString) return 'Date TBA';
+    try {
+      const options = { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' };
+      return new Date(dateString).toLocaleDateString('en-US', options);
+    } catch (e) {
+      return 'Invalid date';
+    }
   };
 
   const formatTime = (timeString) => {
-    const [hours, minutes] = timeString.split(':');
-    const hour = parseInt(hours);
-    const ampm = hour >= 12 ? 'PM' : 'AM';
-    const displayHour = hour % 12 || 12;
-    return `${displayHour}:${minutes} ${ampm}`;
+    if (!timeString) return 'Time TBA';
+    try {
+      const [hours, minutes] = timeString.split(':');
+      const hour = parseInt(hours);
+      const ampm = hour >= 12 ? 'PM' : 'AM';
+      const displayHour = hour % 12 || 12;
+      return `${displayHour}:${minutes || '00'} ${ampm}`;
+    } catch (e) {
+      return 'Invalid time';
+    }
   };
 
   return (
@@ -167,8 +179,8 @@ const EventDetail = () => {
       {/* Hero Section with Image */}
       <div className="relative h-96 overflow-hidden">
         <img
-          src={event.image}
-          alt={event.title}
+          src={event?.image || 'https://images.unsplash.com/photo-1459749411175-04bf5292ceea?w=800&h=400&fit=crop'}
+          alt={event?.title || 'Event'}
           className="w-full h-full object-cover"
         />
         <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent"></div>
@@ -207,15 +219,19 @@ const EventDetail = () => {
         {/* Event Title Overlay */}
         <div className="absolute bottom-6 left-6 right-6">
           <div className="max-w-4xl">
-            <h1 className="text-4xl font-bold text-white mb-2">{event.title}</h1>
+            <h1 className="text-4xl font-bold text-white mb-2">{event?.title || 'Event'}</h1>
             <div className="flex items-center space-x-4 text-white/90">
-              <span className="px-3 py-1 bg-white/20 backdrop-blur-sm rounded-full text-sm">
-                {event.category?.charAt(0).toUpperCase() + event.category?.slice(1)}
-              </span>
-              <span className="flex items-center">
-                <Users className="h-4 w-4 mr-1" />
-                {event.availableTickets} tickets left
-              </span>
+              {event?.category && (
+                <span className="px-3 py-1 bg-white/20 backdrop-blur-sm rounded-full text-sm">
+                  {event.category.charAt(0).toUpperCase() + event.category.slice(1)}
+                </span>
+              )}
+              {event?.availableTickets !== undefined && (
+                <span className="flex items-center">
+                  <Users className="h-4 w-4 mr-1" />
+                  {event.availableTickets} tickets left
+                </span>
+              )}
             </div>
           </div>
         </div>
@@ -230,47 +246,57 @@ const EventDetail = () => {
             <div className="bg-white rounded-lg shadow-sm p-6">
               <h2 className="text-2xl font-bold text-gray-900 mb-4">About This Event</h2>
               <p className="text-gray-700 leading-relaxed mb-6">
-                {event.description}
+                {event?.description || 'No description available.'}
               </p>
 
               {/* Event Details Grid */}
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div className="flex items-start space-x-3">
-                  <Calendar className="h-5 w-5 text-indigo-600 mt-0.5" />
-                  <div>
-                    <div className="font-medium text-gray-900">Date</div>
-                    <div className="text-gray-600">{formatDate(event.date)}</div>
+                {event?.date && (
+                  <div className="flex items-start space-x-3">
+                    <Calendar className="h-5 w-5 text-indigo-600 mt-0.5" />
+                    <div>
+                      <div className="font-medium text-gray-900">Date</div>
+                      <div className="text-gray-600">{formatDate(event.date)}</div>
+                    </div>
                   </div>
-                </div>
+                )}
 
-                <div className="flex items-start space-x-3">
-                  <Clock className="h-5 w-5 text-indigo-600 mt-0.5" />
-                  <div>
-                    <div className="font-medium text-gray-900">Time</div>
-                    <div className="text-gray-600">{formatTime(event.time)}</div>
+                {event?.time && (
+                  <div className="flex items-start space-x-3">
+                    <Clock className="h-5 w-5 text-indigo-600 mt-0.5" />
+                    <div>
+                      <div className="font-medium text-gray-900">Time</div>
+                      <div className="text-gray-600">{formatTime(event.time)}</div>
+                    </div>
                   </div>
-                </div>
+                )}
 
-                <div className="flex items-start space-x-3">
-                  <MapPin className="h-5 w-5 text-indigo-600 mt-0.5" />
-                  <div>
-                    <div className="font-medium text-gray-900">Venue</div>
-                    <div className="text-gray-600">{event.venue.name}</div>
-                    <div className="text-sm text-gray-500">{event.venue.address}</div>
+                {event?.venue?.name && (
+                  <div className="flex items-start space-x-3">
+                    <MapPin className="h-5 w-5 text-indigo-600 mt-0.5" />
+                    <div>
+                      <div className="font-medium text-gray-900">Venue</div>
+                      <div className="text-gray-600">{event.venue.name}</div>
+                      {event.venue.address && (
+                        <div className="text-sm text-gray-500">{event.venue.address}</div>
+                      )}
+                    </div>
                   </div>
-                </div>
+                )}
 
-                <div className="flex items-start space-x-3">
-                  <Users className="h-5 w-5 text-indigo-600 mt-0.5" />
-                  <div>
-                    <div className="font-medium text-gray-900">Capacity</div>
-                    <div className="text-gray-600">{event.venue.capacity} people</div>
+                {event?.venue?.capacity && (
+                  <div className="flex items-start space-x-3">
+                    <Users className="h-5 w-5 text-indigo-600 mt-0.5" />
+                    <div>
+                      <div className="font-medium text-gray-900">Capacity</div>
+                      <div className="text-gray-600">{event.venue.capacity} people</div>
+                    </div>
                   </div>
-                </div>
+                )}
               </div>
 
               {/* Tags */}
-              {event.tags && event.tags.length > 0 && (
+              {event?.tags && event.tags.length > 0 && (
                 <div className="mt-6 pt-6 border-t border-gray-200">
                   <div className="flex flex-wrap gap-2">
                     {event.tags.map((tag, index) => (
@@ -302,26 +328,30 @@ const EventDetail = () => {
             )}
 
             {/* Organizer Info */}
-            <div className="bg-white rounded-lg shadow-sm p-6">
-              <h3 className="text-xl font-bold text-gray-900 mb-4">Organized by</h3>
-              <div className="flex items-center justify-between">
-                <div>
-                  <div className="font-medium text-gray-900">{event.organizer}</div>
-                  <div className="text-sm text-gray-600">Event Organizer</div>
+            {event?.organizer && (
+              <div className="bg-white rounded-lg shadow-sm p-6">
+                <h3 className="text-xl font-bold text-gray-900 mb-4">Organized by</h3>
+                <div className="flex items-center justify-between">
+                  <div>
+                    <div className="font-medium text-gray-900">{event.organizer}</div>
+                    <div className="text-sm text-gray-600">Event Organizer</div>
+                  </div>
+                  <button className="px-4 py-2 border border-gray-300 text-gray-700 rounded-md hover:bg-gray-50 transition-colors duration-200">
+                    Follow
+                  </button>
                 </div>
-                <button className="px-4 py-2 border border-gray-300 text-gray-700 rounded-md hover:bg-gray-50 transition-colors duration-200">
-                  Follow
-                </button>
               </div>
-            </div>
+            )}
           </div>
 
           {/* Sidebar - Ticket Selector */}
-          <div className="lg:col-span-1">
-            <div className="sticky top-4">
-              <TicketSelector event={event} onPurchase={handlePurchase} />
+          {event && (
+            <div className="lg:col-span-1">
+              <div className="sticky top-4">
+                <TicketSelector event={event} onPurchase={handlePurchase} />
+              </div>
             </div>
-          </div>
+          )}
         </div>
       </div>
     </div>

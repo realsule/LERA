@@ -1,4 +1,5 @@
 import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
+import { authAPI } from '../services/api';
 
 /**
  * Authentication Context
@@ -60,9 +61,41 @@ export const AuthProvider = ({ children }) => {
           setUser(parsedUser);
           setToken(storedToken);
           
-          // Skip API verification for now to avoid errors
-          // TODO: Implement token validation with backend API
-          console.log('Auth initialized with stored user:', parsedUser);
+          // Verify token with backend (only if we have a token)
+          try {
+            const response = await authAPI.verify().catch(() => {
+              // If verification fails, don't clear auth (might be server offline)
+              return null;
+            });
+            
+            if (response && response.data) {
+              // Transform backend user data
+              const userData = response.data;
+              const transformedUser = {
+                id: userData.id,
+                username: userData.username,
+                email: userData.email,
+                role: userData.role || 'attendee',
+                firstName: parsedUser.firstName || userData.username?.split(' ')[0] || userData.username,
+                lastName: parsedUser.lastName || userData.username?.split(' ')[1] || ''
+              };
+              setUser(transformedUser);
+              localStorage.setItem('user', JSON.stringify(transformedUser));
+            } else if (response === null) {
+              // Server offline, keep stored user
+              console.warn('Server offline, using stored user data');
+            }
+          } catch (verifyErr) {
+            // Token invalid, clear auth data only if it's an auth error
+            if (verifyErr.response?.status === 401) {
+              console.warn('Token verification failed:', verifyErr);
+              localStorage.removeItem('token');
+              localStorage.removeItem('user');
+              setUser(null);
+              setToken(null);
+            }
+            // If server is offline, keep the stored user but don't verify
+          }
         } catch (err) {
           console.error('Failed to parse stored user:', err);
           // Clear invalid stored data
@@ -83,27 +116,50 @@ export const AuthProvider = ({ children }) => {
       setLoading(true);
       setError(null);
       
-      // Mock login for development - replace with actual API call
-      const mockUser = {
-        id: '1',
-        firstName: 'John',
-        lastName: 'Doe',
-        email: credentials.email,
-        role: 'attendee', // or 'organizer', 'admin'
+      // Use email for login (backend uses email)
+      const loginData = {
+        email: credentials.email || credentials.username,
+        password: credentials.password
       };
       
-      const mockToken = 'mock-jwt-token-' + Date.now();
+      const response = await authAPI.login(loginData).catch((err) => {
+        // Handle network errors
+        if (!err.response) {
+          setError('Server is under maintenance. Please try again later.');
+          throw { response: null, message: 'Server is under maintenance. Please try again later.' };
+        }
+        throw err;
+      });
       
-      setUser(mockUser);
-      setToken(mockToken);
-      localStorage.setItem('token', mockToken);
-      localStorage.setItem('user', JSON.stringify(mockUser));
+      const userData = response.data;
       
-      return { user: mockUser, token: mockToken };
+      // Transform backend user data to match frontend expectations
+      const user = {
+        id: userData.id,
+        username: userData.username,
+        email: userData.email,
+        role: userData.role || 'attendee',
+        firstName: userData.username?.split(' ')[0] || userData.username,
+        lastName: userData.username?.split(' ')[1] || ''
+      };
+      
+      // Backend uses Flask session, but we store a token identifier in localStorage
+      // The actual session is maintained by Flask via cookies
+      const token = `session-${userData.id}-${Date.now()}`;
+      
+      setUser(user);
+      setToken(token);
+      localStorage.setItem('token', token);
+      localStorage.setItem('user', JSON.stringify(user));
+      
+      // Return success format for Login component
+      return { success: true, user, token };
     } catch (err) {
-      const errorMessage = err.response?.data?.message || 'Login failed';
+      const errorMessage = err.response?.data?.error || err.message || 'Login failed. Please check your credentials.';
       setError(errorMessage);
-      throw err;
+      
+      // Return error format for Login component
+      return { success: false, error: errorMessage };
     } finally {
       setLoading(false);
     }
@@ -114,37 +170,66 @@ export const AuthProvider = ({ children }) => {
       setLoading(true);
       setError(null);
       
-      // Mock registration for development - replace with actual API call
-      const mockUser = {
-        id: Date.now().toString(),
-        firstName: userData.firstName,
-        lastName: userData.lastName,
+      // Transform frontend userData to backend format
+      const registerData = {
+        username: userData.username || `${userData.firstName}${userData.lastName}`.toLowerCase(),
         email: userData.email,
-        role: userData.role || 'attendee',
+        password: userData.password,
+        role: userData.role || 'attendee'
       };
       
-      const mockToken = 'mock-jwt-token-' + Date.now();
+      const response = await authAPI.register(registerData).catch((err) => {
+        // Handle network errors
+        if (!err.response) {
+          setError('Server is under maintenance. Please try again later.');
+          throw { response: null, message: 'Server is under maintenance. Please try again later.' };
+        }
+        throw err;
+      });
       
-      setUser(mockUser);
-      setToken(mockToken);
-      localStorage.setItem('token', mockToken);
-      localStorage.setItem('user', JSON.stringify(mockUser));
+      const userDataResponse = response.data;
       
-      return { user: mockUser, token: mockToken };
+      // Transform backend user data to match frontend expectations
+      const user = {
+        id: userDataResponse.id,
+        username: userDataResponse.username,
+        email: userDataResponse.email,
+        role: userDataResponse.role || 'attendee',
+        firstName: userData.firstName || userDataResponse.username?.split(' ')[0] || userDataResponse.username,
+        lastName: userData.lastName || userDataResponse.username?.split(' ')[1] || ''
+      };
+      
+      const token = `session-${userDataResponse.id}-${Date.now()}`;
+      
+      setUser(user);
+      setToken(token);
+      localStorage.setItem('token', token);
+      localStorage.setItem('user', JSON.stringify(user));
+      
+      return { success: true, user, token };
     } catch (err) {
-      const errorMessage = err.response?.data?.message || 'Registration failed';
+      const errorMessage = err.response?.data?.error || err.message || 'Registration failed. Please try again.';
       setError(errorMessage);
-      throw err;
+      
+      return { success: false, error: errorMessage };
     } finally {
       setLoading(false);
     }
   }, []);
 
-  const logout = useCallback(() => {
-    setUser(null);
-    setToken(null);
-    localStorage.removeItem('token');
-    localStorage.removeItem('user');
+  const logout = useCallback(async () => {
+    try {
+      // Call backend logout endpoint
+      await authAPI.logout();
+    } catch (err) {
+      console.warn('Logout API call failed:', err);
+      // Continue with local logout even if API call fails
+    } finally {
+      setUser(null);
+      setToken(null);
+      localStorage.removeItem('token');
+      localStorage.removeItem('user');
+    }
   }, []);
 
   const isAuthenticated = () => {

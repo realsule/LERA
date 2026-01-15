@@ -87,10 +87,11 @@ api.interceptors.response.use(
       window.location.href = '/unauthorized';
     }
     
-    // Handle network errors (no response from server)
+    // Handle network errors (no response from server) - Server is offline
     if (!error.response) {
-      console.error('Network Error:', error.message);
-      error.message = 'Network error. Please check your connection.';
+      console.error('Network Error - Server appears to be offline:', error.message);
+      error.isServerOffline = true;
+      error.message = 'Server is under maintenance. Please try again later.';
     }
     
     return Promise.reject(error);
@@ -101,7 +102,7 @@ api.interceptors.response.use(
 export const authAPI = {
   login: (credentials) => api.post('/auth/login', credentials),
   register: (userData) => api.post('/auth/register', userData),
-  verify: () => api.get('/auth/verify'),
+  verify: () => api.get('/auth/me'), // Backend uses /auth/me for current user
   refreshToken: () => api.post('/auth/refresh'),
   logout: () => api.post('/auth/logout'),
   forgotPassword: (email) => api.post('/auth/forgot-password', { email }),
@@ -132,6 +133,23 @@ export const usersAPI = {
   getById: (id) => api.get(`/users/${id}`),
   update: (id, userData) => api.put(`/users/${id}`, userData),
   delete: (id) => api.delete(`/users/${id}`),
+};
+
+/**
+ * Health Check API
+ * 
+ * Checks the backend server health status.
+ * This function is called on app load to verify backend connectivity.
+ */
+export const checkHealth = async () => {
+  try {
+    const response = await api.get('/health');
+    console.log('✅ Backend Health Status:', response.data);
+    return { status: 'healthy', data: response.data };
+  } catch (error) {
+    console.error('❌ Backend Health Check Failed:', error.message);
+    return { status: 'unhealthy', error: error.message };
+  }
 };
 
 export default api;

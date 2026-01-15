@@ -30,10 +30,9 @@ export default defineConfig({
       '/api': {
         target: 'http://127.0.0.1:5000', // Backend server port
         changeOrigin: true, // Required for virtual hosted sites
-        // Remove the /api prefix before sending to backend
-        // This allows clean backend routes without /api prefix
-        // Example: GET /api/events -> GET http://127.0.0.1:5000/events
-        rewrite: (path) => path.replace(/^\/api/, ''),
+        // Keep the /api prefix when forwarding to backend
+        // Backend routes are registered with /api prefix (see backend/server/app.py)
+        // Example: GET /api/events -> GET http://127.0.0.1:5000/api/events
       },
     },
   },
