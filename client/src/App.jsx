@@ -10,23 +10,46 @@ import Login from './pages/Login';
 import Unauthorized from './pages/Unauthorized';
 import ProtectedRoute from './layout/ProtectedRoute';
 
+/**
+ * Main App Component
+ * 
+ * This is the root component of the LERA frontend application.
+ * It sets up the entire application structure including:
+ * - React Router for navigation
+ * - Authentication context for user state management
+ * - Error boundaries for graceful error handling
+ * - Layout components (Navbar, Footer)
+ * - Route definitions for all pages
+ * 
+ * The component follows a hierarchical structure:
+ * Router > ErrorBoundary > AuthProvider > Layout > Routes
+ * 
+ * Router wraps everything to provide routing context
+ * ErrorBoundary catches and handles component errors
+ * AuthProvider provides authentication state throughout the app
+ * ProtectedRoute components guard routes that require authentication
+ */
+
 function App() {
   return (
     // Router must wrap providers/components that use react-router hooks.
+    // This ensures useNavigate, useParams, etc. work throughout the app.
     <Router>
       <ErrorBoundary>
-        // AuthProvider is app-wide; ProtectedRoute enforces auth/roles where needed.
+        {/* AuthProvider is app-wide; ProtectedRoute enforces auth/roles where needed */}
         <AuthProvider>
           <div className="min-h-screen bg-gray-50 flex flex-col">
             <Navbar />
             <main className="flex-grow container mx-auto px-4 py-8">
               <Routes>
+                {/* Public routes - accessible to all users */}
                 <Route path="/" element={<Home />} />
                 <Route path="/login" element={<Login />} />
                 <Route path="/events/:id" element={<EventDetail />} />
                 <Route path="/unauthorized" element={<Unauthorized />} />
                 
                 {/* Protected Routes for IAM Requirements */}
+                {/* These routes require authentication and specific user roles */}
                 <Route
                   path="/dashboard"
                   element={
@@ -36,7 +59,7 @@ function App() {
                   }
                 />
                 
-                {/* Admin-only routes */}
+                {/* Admin-only routes - highest privilege level */}
                 <Route
                   path="/admin"
                   element={
