@@ -2,10 +2,8 @@ import axios from 'axios';
 
 // Create axios instance with base configuration
 const api = axios.create({
-  // Local dev:
-  // - Default: use Vite dev-server proxy at `/api` (see `vite.config.js`).
-  // - Production / no-proxy: set `VITE_API_BASE_URL` (e.g. https://api.example.com).
-  baseURL: import.meta.env.VITE_API_BASE_URL || '/api',
+  // Use VITE_API_URL from netlify.toml or fallback to proxy
+  baseURL: import.meta.env.VITE_API_URL || '/api',
   timeout: 10000,
   headers: {
     'Content-Type': 'application/json',
