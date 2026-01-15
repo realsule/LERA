@@ -1,6 +1,13 @@
 import sys
 import os
+<<<<<<< HEAD
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..'))
+=======
+# Add backend directory to Python path for imports
+backend_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), '..'))
+if backend_dir not in sys.path:
+    sys.path.insert(0, backend_dir)
+>>>>>>> frontend
 
 from flask import Flask, jsonify
 from flask_migrate import Migrate
