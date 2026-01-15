@@ -1,7 +1,11 @@
+import sys
+import os
+sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..'))
+
 from flask import Flask, jsonify
 from flask_migrate import Migrate
 from flask_cors import CORS
-from models import db
+from ..models import db
 from config import Config
 
 # Import blueprints
