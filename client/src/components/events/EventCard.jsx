@@ -31,7 +31,7 @@ const EventCard = ({ event, showActions = true }) => {
   const availabilityStatus = getAvailabilityStatus(event.availableTickets, event.totalTickets);
 
   return (
-    <div className="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden hover:shadow-lg transition-shadow duration-300" data-testid="event-card">
+    <div className="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden hover:shadow-xl hover:-translate-y-2 transition-all duration-300 ease-in-out" data-testid="event-card">
       {/* Event Image */}
       <div className="relative h-48">
         <img
