@@ -29,6 +29,20 @@ const Login = () => {
     onSubmit: async (values, { setSubmitting }) => {
       setFieldErrors({});
       try {
+        // Demo login logic for presentation
+        if (values.email === 'demo@example.com' && values.password === 'Demo123!') {
+          // Save demo user to localStorage
+          localStorage.setItem('isAuthenticated', 'true');
+          localStorage.setItem('user', JSON.stringify({ name: 'Demo User' }));
+          
+          // Show success message
+          window.alert('Login successful! Welcome Demo User.');
+          
+          // Navigate to home page
+          navigate('/', { replace: true });
+          return;
+        }
+        
         const result = await login(values);
         
         if (result && result.success) {

@@ -32,6 +32,21 @@ const Home = () => {
       // Parse the ISO date string from backend
       const eventDate = backendEvent.date ? new Date(backendEvent.date) : new Date();
       
+      // Map event titles to high-quality Unsplash images
+      const getEventImage = (title) => {
+        if (title.toLowerCase().includes('music') || title.toLowerCase().includes('festival')) {
+          return 'https://images.unsplash.com/photo-1459749411177-042180ceea72?q=80&w=1000&auto=format&fit=crop';
+        }
+        if (title.toLowerCase().includes('tech') || title.toLowerCase().includes('innovation') || title.toLowerCase().includes('summit')) {
+          return 'https://images.unsplash.com/photo-1540575861501-7ad05823c951?q=80&w=1000&auto=format&fit=crop';
+        }
+        if (title.toLowerCase().includes('marathon') || title.toLowerCase().includes('championship') || title.toLowerCase().includes('sports')) {
+          return 'https://images.unsplash.com/photo-1452626038306-9aae5e071dd3?q=80&w=1000&auto=format&fit=crop';
+        }
+        // Default image for other events
+        return 'https://images.unsplash.com/photo-1541339907198-e08756dedf3f?q=80&w=1000&auto=format&fit=crop';
+      };
+      
       return {
         id: backendEvent.id || null,
         title: backendEvent.title || 'Untitled Event',
@@ -41,14 +56,14 @@ const Home = () => {
         date: backendEvent.date || new Date().toISOString(),
         time: eventDate.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' }),
         venue: backendEvent.location || 'Venue TBA', // Backend uses 'location' not 'venue'
-        ticketTypes: [
+        image: getEventImage(backendEvent.title), // Add high-quality image based on title
+        ticketTypes: [ 
           { 
             name: 'General Admission', 
             price: backendEvent.price || 0, 
             quantity: Math.floor((backendEvent.capacity || 0) * 0.8) 
           }
         ],
-        image: 'https://images.unsplash.com/photo-1459749411175-04bf5292ceea?w=400&h=250&fit=crop',
         // Backend only provides organizer_id, not organizer object
         organizer: { 
           firstName: 'Event', 
@@ -150,7 +165,7 @@ const Home = () => {
   return (
     <div className="min-h-screen bg-gray-50">
       {/* Hero Section */}
-      <section className="bg-gradient-to-br from-indigo-600 to-blue-700 text-white" data-testid="hero-section">
+      <section className="bg-gradient-to-br from-purple-600 to-blue-700 text-white" data-testid="hero-section">
         <div className="container mx-auto px-4 py-20">
           <div className="max-w-4xl mx-auto text-center">
             <h1 className="text-5xl font-bold mb-6" data-testid="hero-title">
@@ -188,7 +203,7 @@ const Home = () => {
                 ))}
               </select>
               <button
-                className="px-8 py-3 bg-indigo-600 text-white rounded-md hover:bg-indigo-700 transition-colors duration-200 font-medium"
+                className="px-8 py-3 bg-purple-600 text-white rounded-md hover:bg-purple-700 transition-colors duration-200 font-medium"
                 data-testid="search-button"
                 aria-label="Search events"
               >
@@ -298,32 +313,32 @@ const Home = () => {
 
           {/* Statistics Section */}
           <div className="grid grid-cols-1 md:grid-cols-4 gap-8 mb-12" data-testid="statistics">
-            <div className="text-center">
+            <div className="text-center animate-fade-in">
               <div className="bg-white rounded-lg shadow-sm p-6 mb-4">
-                <Users className="h-8 w-8 text-indigo-600 mx-auto mb-2" />
+                <Users className="h-8 w-8 text-purple-600 mx-auto mb-2" />
                 <h3 className="text-lg font-semibold text-gray-900">Events Listed</h3>
-                <p className="text-2xl font-bold text-indigo-600">1,200+</p>
+                <p className="text-2xl font-bold text-purple-600 animate-pop">1,200+</p>
               </div>
               <div className="bg-white rounded-lg shadow-sm p-6 mb-4">
                 <Calendar className="h-8 w-8 text-green-600 mx-auto mb-2" />
                 <h3 className="text-lg font-semibold text-gray-900">Active Users</h3>
-                <p className="text-2xl font-bold text-green-600">50K+</p>
+                <p className="text-2xl font-bold text-green-600 animate-pop">50K+</p>
               </div>
               <div className="bg-white rounded-lg shadow-sm p-6 mb-4">
                 <Star className="h-8 w-8 text-yellow-500 mx-auto mb-2" />
                 <h3 className="text-lg font-semibold text-gray-900">Average Rating</h3>
-                <p className="text-2xl font-bold text-yellow-500">4.8</p>
+                <p className="text-2xl font-bold text-yellow-500 animate-pop">4.8</p>
               </div>
               <div className="bg-white rounded-lg shadow-sm p-6 mb-4">
                 <TrendingUp className="h-8 w-8 text-purple-600 mx-auto mb-2" />
                 <h3 className="text-lg font-semibold text-gray-900">Satisfaction</h3>
-                <p className="text-2xl font-bold text-purple-600">98%</p>
+                <p className="text-2xl font-bold text-purple-600 animate-pop">98%</p>
               </div>
             </div>
           </div>
 
           {/* CTA Section */}
-          <section className="bg-gradient-to-r from-indigo-600 to-purple-700 text-white py-16" data-testid="cta-section">
+          <section className="bg-gradient-to-r from-purple-600 to-purple-700 text-white py-16" data-testid="cta-section">
             <div className="container mx-auto px-4">
               <div className="max-w-4xl mx-auto text-center">
                 <h2 className="text-3xl font-bold mb-4">Ready to Host Your Own Event?</h2>
@@ -331,14 +346,14 @@ const Home = () => {
                 <div className="flex flex-col sm:flex-row gap-4 justify-center">
                   <Link
                     to="/events/create"
-                    className="px-8 py-3 bg-white text-indigo-600 rounded-md hover:bg-indigo-700 transition-colors duration-200 font-medium"
+                    className="px-8 py-3 bg-white text-purple-600 rounded-md hover:bg-purple-700 transition-colors duration-200 font-medium"
                     aria-label="Create new event"
                   >
                     Get Started Today
                   </Link>
                   <Link
                     to="/events/create"
-                    className="px-8 py-3 bg-transparent border-2 border-white text-indigo-600 rounded-md hover:bg-white hover:text-indigo-700 transition-colors duration-200 font-medium"
+                    className="px-8 py-3 bg-transparent border-2 border-white text-white rounded-md hover:bg-white hover:text-purple-600 transition-colors duration-200 font-medium"
                     aria-label="Learn more"
                   >
                     Browse All Events
