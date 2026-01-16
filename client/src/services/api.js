@@ -98,9 +98,85 @@ api.interceptors.response.use(
   }
 );
 
+// Mock data for emergency presentation mode
+const mockEvents = [
+  {
+    id: 1,
+    title: 'Summer Music Festival 2024',
+    description: 'Join us for an unforgettable night of live music featuring top artists from around the world. Experience the magic of summer with amazing performances, food vendors, and festival activities.',
+    date: '2024-07-15T19:00:00Z',
+    location: 'Central Park Arena, New York',
+    price: 9500.00, // KES equivalent of $75 USD
+    capacity: 5000,
+    category: 'concert',
+    image: 'https://images.unsplash.com/photo-1459749411177-042180ceea72?q=80&w=1000&auto=format&fit=crop',
+    organizer: { firstName: 'Event', lastName: 'Organizer' },
+    totalTickets: 5000,
+    availableTickets: 4000,
+    rating: 4.8,
+    reviews: 256
+  },
+  {
+    id: 2,
+    title: 'Tech Innovation Summit',
+    description: 'Connect with industry leaders and discover cutting-edge technologies that are shaping our future. Network with professionals, attend workshops, and gain insights into the latest tech trends.',
+    date: '2024-08-20T09:00:00Z',
+    location: 'Convention Center, San Francisco',
+    price: 37800.00, // KES equivalent of $299 USD
+    capacity: 1000,
+    category: 'conference',
+    image: 'https://images.unsplash.com/photo-1540575861501-7ad05823c951?q=80&w=1000&auto=format&fit=crop',
+    organizer: { firstName: 'Tech', lastName: 'Events' },
+    totalTickets: 1000,
+    availableTickets: 750,
+    rating: 4.9,
+    reviews: 189
+  },
+  {
+    id: 3,
+    title: 'Marathon Championship',
+    description: 'Challenge yourself in this exciting marathon event for all fitness levels. Professional timing, medals, and a celebration at the finish line await all participants.',
+    date: '2024-09-10T07:00:00Z',
+    location: 'City Stadium, Chicago, IL',
+    price: 6300.00, // KES equivalent of $50 USD
+    capacity: 2000,
+    category: 'sports',
+    image: 'https://images.unsplash.com/photo-1452626038306-9aae5e071dd3?q=80&w=1000&auto=format&fit=crop',
+    organizer: { firstName: 'Sports', lastName: 'Plus' },
+    totalTickets: 2000,
+    availableTickets: 1800,
+    rating: 4.7,
+    reviews: 142
+  }
+];
+
+// Emergency presentation mode flag
+const isEmergencyMode = false; // Set to true for presentation, false for normal API calls
+
 // API service methods
 export const authAPI = {
-  login: (credentials) => api.post('/auth/login', credentials),
+  login: (credentials) => {
+    if (isEmergencyMode) {
+      return new Promise((resolve, reject) => {
+        setTimeout(() => {
+          if (credentials.email === 'demo@example.com' && credentials.password === 'Demo123!') {
+            resolve({ 
+              data: { 
+                success: true, 
+                user: { name: 'Demo User', email: 'demo@example.com' },
+                token: 'mock-jwt-token-for-presentation'
+              } 
+            });
+          } else {
+            reject({ 
+              response: { data: { error: 'Invalid credentials' } }
+            });
+          }
+        }, 500); // Simulate network delay
+      });
+    }
+    return api.post('/auth/login', credentials);
+  },
   register: (userData) => api.post('/auth/register', userData),
   verify: () => api.get('/auth/me'), // Backend uses /auth/me for current user
   refreshToken: () => api.post('/auth/refresh'),
@@ -110,8 +186,31 @@ export const authAPI = {
 };
 
 export const eventsAPI = {
-  getAll: (params) => api.get('/api/events/', { params }),
-  getById: (id) => api.get(`/api/events/${id}/`),
+  getAll: (params) => {
+    if (isEmergencyMode) {
+      return new Promise((resolve) => {
+        setTimeout(() => {
+          resolve({ data: mockEvents });
+        }, 300); // Simulate network delay
+      });
+    }
+    return api.get('/api/events/', { params });
+  },
+  getById: (id) => {
+    if (isEmergencyMode) {
+      return new Promise((resolve, reject) => {
+        setTimeout(() => {
+          const event = mockEvents.find(e => e.id === parseInt(id));
+          if (event) {
+            resolve({ data: event });
+          } else {
+            reject({ response: { data: { error: 'Event not found' } } });
+          }
+        }, 300);
+      });
+    }
+    return api.get(`/api/events/${id}/`);
+  },
   create: (eventData) => api.post('/api/events/', eventData),
   update: (id, eventData) => api.put(`/api/events/${id}/`, eventData),
   delete: (id) => api.delete(`/api/events/${id}/`),
@@ -142,6 +241,9 @@ export const usersAPI = {
  * This function is called on app load to verify backend connectivity.
  */
 export const checkHealth = async () => {
+  if (isEmergencyMode) {
+    return { status: 'healthy', data: { message: 'Mock mode active' } };
+  }
   try {
     const response = await api.get('/api/health');
     console.log('✅ Backend Health Status:', response.data);

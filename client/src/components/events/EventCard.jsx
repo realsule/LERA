@@ -109,7 +109,7 @@ const EventCard = ({ event, showActions = true }) => {
               {event.availableTickets}/{event.totalTickets} tickets
             </span>
             <span className="font-semibold text-gray-900">
-              From ${getLowestPrice(event.ticketTypes)}
+              From KES {getLowestPrice(event.ticketTypes).toLocaleString()}
             </span>
           </div>
         </div>

@@ -28,12 +28,12 @@ export default defineConfig({
       // Frontend makes requests to /api/... (see src/services/api.js)
       // Vite proxies these requests to the backend server during development
       '/api': {
-        target: 'http://localhost:5555', // Local backend for development
+        target: 'http://localhost:5000', // Local backend for development
         changeOrigin: true, // Required for virtual hosted sites
         secure: false, // Required for localhost
         // Keep the /api prefix when forwarding to backend
         // Backend routes are registered with /api prefix (see backend/server/app.py)
-        // Example: GET /api/events -> GET http://localhost:5555/api/events
+        // Example: GET /api/events -> GET http://localhost:5000/api/events
       },
     },
   },
