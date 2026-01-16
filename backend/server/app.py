@@ -1,13 +1,10 @@
 import sys
 import os
-<<<<<<< HEAD
-sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..'))
-=======
+
 # Add backend directory to Python path for imports
 backend_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), '..'))
 if backend_dir not in sys.path:
     sys.path.insert(0, backend_dir)
->>>>>>> frontend
 
 from flask import Flask, jsonify
 from flask_migrate import Migrate
@@ -28,7 +25,7 @@ def create_app():
     app = Flask(__name__)
     app.config.from_object(Config)
     
-    # Enable CORS - Allow frontend origins
+    # Enable CORS
     frontend_url = os.environ.get('FRONTEND_URL', 'http://localhost:5173')
     CORS(app, 
          origins=[frontend_url, 'http://localhost:5173', 'http://localhost:3000'],
@@ -38,7 +35,7 @@ def create_app():
     db.init_app(app)
     Migrate(app, db)
     
-    # CREATE TABLES ON STARTUP
+    # Create tables on startup
     with app.app_context():
         db.create_all()
         print("✅ Database tables created/verified")
@@ -52,7 +49,7 @@ def create_app():
     app.register_blueprint(payments_bp, url_prefix='/api/payments')
     app.register_blueprint(admin_bp, url_prefix='/api/admin')
     
-    # Health check route
+    # Health check routes
     @app.route('/')
     def home():
         return jsonify({"message": "LERA API is running"})

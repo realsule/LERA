@@ -22,26 +22,18 @@ import react from '@vitejs/plugin-react'
 export default defineConfig({
   plugins: [react()],
   server: {
-<<<<<<< HEAD
-    proxy: {
-      '/api': {
-        target: 'http://localhost:5555',
-        changeOrigin: true,
-        secure: false,
-=======
     port: 5173, // Fixed port for Netlify dev server compatibility
     proxy: {
       // API proxy configuration for development
       // Frontend makes requests to /api/... (see src/services/api.js)
       // Vite proxies these requests to the backend server during development
       '/api': {
-        target: 'https://your-backend-app.onrender.com', // Render backend URL
+        target: 'http://localhost:5555', // Local backend for development
         changeOrigin: true, // Required for virtual hosted sites
-        secure: true, // Required for HTTPS
+        secure: false, // Required for localhost
         // Keep the /api prefix when forwarding to backend
         // Backend routes are registered with /api prefix (see backend/server/app.py)
-        // Example: GET /api/events -> GET https://your-backend-app.onrender.com/api/events
->>>>>>> frontend
+        // Example: GET /api/events -> GET http://localhost:5555/api/events
       },
     },
   },
