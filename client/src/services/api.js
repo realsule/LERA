@@ -110,12 +110,12 @@ export const authAPI = {
 };
 
 export const eventsAPI = {
-  getAll: (params) => api.get('/events', { params }),
-  getById: (id) => api.get(`/events/${id}`),
-  create: (eventData) => api.post('/events', eventData),
-  update: (id, eventData) => api.put(`/events/${id}`, eventData),
-  delete: (id) => api.delete(`/events/${id}`),
-  getMyEvents: () => api.get('/events/my-events'),
+  getAll: (params) => api.get('/api/events/', { params }),
+  getById: (id) => api.get(`/api/events/${id}/`),
+  create: (eventData) => api.post('/api/events/', eventData),
+  update: (id, eventData) => api.put(`/api/events/${id}/`, eventData),
+  delete: (id) => api.delete(`/api/events/${id}/`),
+  getMyEvents: () => api.get('/api/events/my-events/'),
 };
 
 export const ticketsAPI = {
@@ -143,7 +143,7 @@ export const usersAPI = {
  */
 export const checkHealth = async () => {
   try {
-    const response = await api.get('/health');
+    const response = await api.get('/api/health');
     console.log('✅ Backend Health Status:', response.data);
     return { status: 'healthy', data: response.data };
   } catch (error) {
