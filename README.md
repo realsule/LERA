@@ -4,7 +4,7 @@ LERA is a full-stack platform designed to bridge the gap between event organizer
 
 ## 🚀 Technical Stack
 - **Frontend:** React, Tailwind CSS, Vite
-- **Backend:** Python (Flask), SQLAlchemy, Flask-Restful
+- **Backend:** Python (Flask), SQLAlchemy, Flask-Restful, Auth (JWT)
 - **Database:** SQLite (Development) / PostgreSQL (Production)
 
 ## 👥 The Development Team
