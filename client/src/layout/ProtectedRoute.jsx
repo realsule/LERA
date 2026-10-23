@@ -1,41 +1,31 @@
 import React from 'react';
 import { Navigate, useLocation } from 'react-router-dom';
+import { Loader2 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
-import { Loader } from 'lucide-react';
 
+/**
+ * Guards private routes. Role checks here only shape the UI; every mutating
+ * request is also authorised by the Flask API.
+ */
 const ProtectedRoute = ({ children, roles = [] }) => {
-  const { user, loading, isAuthenticated, hasRole } = useAuth();
+  const { loading, isAuthenticated, hasAnyRole } = useAuth();
   const location = useLocation();
 
   if (loading) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gray-50">
-        <div className="text-center">
-          <Loader className="h-12 w-12 text-blue-600 animate-spin mx-auto mb-4" />
-          <p className="text-gray-600">Loading...</p>
-        </div>
+      <div className="flex min-h-[60vh] items-center justify-center" role="status">
+        <Loader2 className="h-10 w-10 animate-spin text-indigo-600" aria-hidden="true" />
+        <span className="sr-only">Checking your session…</span>
       </div>
     );
   }
 
-  if (!isAuthenticated()) {
-    return (
-      <Navigate 
-        to="/login" 
-        state={{ from: location }} 
-        replace 
-      />
-    );
+  if (!isAuthenticated) {
+    return <Navigate to="/login" state={{ from: location }} replace />;
   }
 
-  if (roles.length > 0 && !roles.some(role => hasRole(role))) {
-    return (
-      <Navigate 
-        to="/unauthorized" 
-        state={{ from: location }} 
-        replace 
-      />
-    );
+  if (roles.length > 0 && !hasAnyRole(roles)) {
+    return <Navigate to="/unauthorized" state={{ from: location }} replace />;
   }
 
   return children;

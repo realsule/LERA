@@ -1,250 +1,321 @@
 import React, { useState } from 'react';
-import { Plus, Minus, Calendar, MapPin, Users, Clock, AlertCircle, Check } from 'lucide-react';
+import { Link, useLocation } from 'react-router-dom';
+import {
+  AlertCircle,
+  CalendarDays,
+  CheckCircle2,
+  CreditCard,
+  Loader2,
+  MapPin,
+  Minus,
+  Plus,
+  ShieldCheck,
+  Ticket,
+  Users,
+} from 'lucide-react';
+import { useAuth } from '../../context/AuthContext';
+import { bookingsAPI, paymentsAPI } from '../../services/api';
+import {
+  formatDateTime,
+  formatKes,
+  formatPriceLabel,
+  normalizeEvent,
+} from '../../utils/format';
 
-const TicketSelector = ({ event, onPurchase }) => {
-  const [quantities, setQuantities] = useState({});
-  const [agreeTerms, setAgreeTerms] = useState(false);
-  const [isProcessing, setIsProcessing] = useState(false);
+const MAX_PER_BOOKING = 10;
 
-  const handleQuantityChange = (ticketId, change) => {
-    setQuantities(prev => {
-      const current = prev[ticketId] || 0;
-      const ticketType = event.ticketTypes.find(t => t.id === ticketId);
-      const maxQuantity = ticketType?.quantity || 0;
-      const newQuantity = Math.max(0, Math.min(current + change, maxQuantity));
-      
-      return {
-        ...prev,
-        [ticketId]: newQuantity
-      };
-    });
+const TicketSelector = ({ event: rawEvent, onBooked }) => {
+  const event = normalizeEvent(rawEvent);
+  const { isAuthenticated, user } = useAuth();
+  const location = useLocation();
+  const [quantity, setQuantity] = useState(1);
+  const [specialRequests, setSpecialRequests] = useState('');
+  const [accepted, setAccepted] = useState(false);
+  const [submitting, setSubmitting] = useState(false);
+  const [confirming, setConfirming] = useState(false);
+  const [error, setError] = useState(null);
+  const [booking, setBooking] = useState(null);
+
+  if (!event) return null;
+
+  const maxQuantity = Math.max(Math.min(event.availableTickets, MAX_PER_BOOKING), 1);
+  const canBook = !event.isPast && !event.isSoldOut && event.availableTickets > 0;
+  const total = event.price * quantity;
+  const displayTotal = total > 0 ? formatKes(total) : 'Free';
+
+  const changeQuantity = (delta) => {
+    setQuantity((current) => Math.min(Math.max(current + delta, 1), maxQuantity));
   };
 
-  const getTotalQuantity = () => {
-    return Object.values(quantities).reduce((sum, qty) => sum + qty, 0);
-  };
-
-  const getTotalPrice = () => {
-    return Object.entries(quantities).reduce((sum, [ticketId, qty]) => {
-      const ticketType = event.ticketTypes.find(t => t.id === ticketId);
-      return sum + (ticketType?.price || 0) * qty;
-    }, 0);
-  };
-
-  const handlePurchase = async () => {
-    if (getTotalQuantity() === 0 || !agreeTerms) return;
-
-    setIsProcessing(true);
-    
+  const createBooking = async (submitEvent) => {
+    submitEvent.preventDefault();
+    if (!canBook || submitting || !accepted) return;
+    setSubmitting(true);
+    setError(null);
     try {
-      // Simulate purchase process
-      await new Promise(resolve => setTimeout(resolve, 1500));
-      
-      const purchaseData = {
-        eventId: event.id,
-        tickets: Object.entries(quantities)
-          .filter(([_, qty]) => qty > 0)
-          .map(([ticketId, qty]) => ({
-            ticketId,
-            quantity: qty,
-            ticketType: event.ticketTypes.find(t => t.id === ticketId)
-          })),
-        totalPrice: getTotalPrice(),
-        purchaseDate: new Date().toISOString()
-      };
-
-      if (onPurchase) {
-        onPurchase(purchaseData);
-      }
-
-      // Reset form
-      setQuantities({});
-      setAgreeTerms(false);
-    } catch (error) {
-      console.error('Purchase failed:', error);
+      const created = await bookingsAPI.create({
+        event_id: event.id,
+        tickets_count: quantity,
+        special_requests: specialRequests.trim() || null,
+      });
+      setBooking(created);
+      onBooked?.(created);
+    } catch (err) {
+      setError(err?.message || 'The booking could not be created.');
     } finally {
-      setIsProcessing(false);
+      setSubmitting(false);
     }
   };
 
-  const formatDate = (dateString) => {
-    const options = { weekday: 'short', month: 'short', day: 'numeric' };
-    return new Date(dateString).toLocaleDateString('en-US', options);
+  const confirmBooking = async () => {
+    if (!booking || confirming) return;
+    setConfirming(true);
+    setError(null);
+    try {
+      const result = await paymentsAPI.pay(booking.id);
+      setBooking(result.booking || { ...booking, status: 'confirmed' });
+      onBooked?.(result.booking);
+    } catch (err) {
+      setError(err?.message || 'The booking could not be confirmed.');
+    } finally {
+      setConfirming(false);
+    }
   };
 
-  const formatTime = (timeString) => {
-    const [hours, minutes] = timeString.split(':');
-    const hour = parseInt(hours);
-    const ampm = hour >= 12 ? 'PM' : 'AM';
-    const displayHour = hour % 12 || 12;
-    return `${displayHour}:${minutes} ${ampm}`;
-  };
-
-  return (
-    <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
-      {/* Event Summary */}
-      <div className="mb-6">
-        <div className="flex items-start space-x-4">
-          <img
-            src={event.image}
-            alt={event.title}
-            className="w-20 h-20 rounded-lg object-cover"
-          />
-          <div className="flex-1">
-            <h3 className="text-lg font-semibold text-gray-900 mb-2">{event.title}</h3>
-            <div className="space-y-1 text-sm text-gray-600">
-              <div className="flex items-center">
-                <Calendar className="h-4 w-4 mr-2" />
-                {formatDate(event.date)} at {formatTime(event.time)}
-              </div>
-              <div className="flex items-center">
-                <MapPin className="h-4 w-4 mr-2" />
-                {event.venue?.name || event.venue}
-              </div>
-              <div className="flex items-center">
-                <Users className="h-4 w-4 mr-2" />
-                {event.availableTickets} tickets available
-              </div>
-            </div>
+  if (booking) {
+    const isConfirmed = booking.status === 'confirmed';
+    return (
+      <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
+        <div className="flex items-start gap-3">
+          <div className={`rounded-full p-2 ${isConfirmed ? 'bg-emerald-100' : 'bg-indigo-100'}`}>
+            {isConfirmed ? (
+              <CheckCircle2 className="h-6 w-6 text-emerald-700" aria-hidden="true" />
+            ) : (
+              <Ticket className="h-6 w-6 text-indigo-700" aria-hidden="true" />
+            )}
+          </div>
+          <div>
+            <h3 className="text-lg font-semibold text-slate-900">
+              {isConfirmed ? 'Booking confirmed' : 'Seats reserved'}
+            </h3>
+            <p className="mt-1 text-sm text-slate-600">
+              {isConfirmed
+                ? 'Your booking is confirmed on the server and your seats are secured.'
+                : 'Your booking is pending confirmation. The seats are held while it is pending.'}
+            </p>
           </div>
         </div>
-      </div>
 
-      {/* Ticket Types */}
-      <div className="space-y-4 mb-6">
-        <h4 className="text-md font-semibold text-gray-900">Select Tickets</h4>
-        
-        {event.ticketTypes.map((ticketType) => {
-          const quantity = quantities[ticketType.id] || 0;
-          const isSoldOut = ticketType.quantity === 0;
-          
-          return (
-            <div
-              key={ticketType.id}
-              className={`border rounded-lg p-4 ${
-                isSoldOut ? 'bg-gray-50 border-gray-200' : 'border-gray-300'
-              }`}
-            >
-              <div className="flex items-center justify-between mb-3">
-                <div>
-                  <h5 className="font-medium text-gray-900">{ticketType.name}</h5>
-                  <p className="text-sm text-gray-600">
-                    {ticketType.description || 'Standard admission'}
-                  </p>
-                </div>
-                <div className="text-right">
-                  <p className="text-lg font-semibold text-gray-900">
-                    ${ticketType.price}
-                  </p>
-                  <p className="text-xs text-gray-500">
-                    {isSoldOut ? 'Sold Out' : `${ticketType.quantity} left`}
-                  </p>
-                </div>
-              </div>
+        <dl className="mt-5 space-y-3 rounded-xl bg-slate-50 p-4 text-sm">
+          <div className="flex justify-between gap-3">
+            <dt className="text-slate-500">Reference</dt>
+            <dd className="font-mono font-semibold text-slate-900">{booking.reference}</dd>
+          </div>
+          <div className="flex justify-between gap-3">
+            <dt className="text-slate-500">Tickets</dt>
+            <dd className="font-medium text-slate-900">{booking.tickets_count}</dd>
+          </div>
+          <div className="flex justify-between gap-3">
+            <dt className="text-slate-500">Total</dt>
+            <dd className="font-semibold text-slate-900">
+              {Number(booking.total_price) > 0 ? formatKes(booking.total_price) : 'Free'}
+            </dd>
+          </div>
+          <div className="flex justify-between gap-3">
+            <dt className="text-slate-500">Status</dt>
+            <dd className="font-medium capitalize text-slate-900">{booking.status}</dd>
+          </div>
+        </dl>
 
-              {/* Quantity Selector */}
-              {!isSoldOut && (
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center space-x-3">
-                    <button
-                      onClick={() => handleQuantityChange(ticketType.id, -1)}
-                      className="w-8 h-8 rounded-full border border-gray-300 flex items-center justify-center hover:bg-gray-50 transition-colors duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
-                      disabled={quantity === 0}
-                    >
-                      <Minus className="h-4 w-4" />
-                    </button>
-                    <span className="w-12 text-center font-medium text-gray-900">
-                      {quantity}
-                    </span>
-                    <button
-                      onClick={() => handleQuantityChange(ticketType.id, 1)}
-                      className="w-8 h-8 rounded-full border border-gray-300 flex items-center justify-center hover:bg-gray-50 transition-colors duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
-                      disabled={quantity >= ticketType.quantity}
-                    >
-                      <Plus className="h-4 w-4" />
-                    </button>
-                  </div>
-                  
-                  <div className="text-right">
-                    <p className="text-sm text-gray-600">
-                      Subtotal: <span className="font-medium text-gray-900">
-                        ${(ticketType.price * quantity).toFixed(2)}
-                      </span>
-                    </p>
-                  </div>
-                </div>
-              )}
-            </div>
-          );
-        })}
-      </div>
-
-      {/* Summary */}
-      <div className="border-t border-gray-200 pt-4 mb-6">
-        <div className="flex justify-between items-center mb-4">
-          <span className="text-lg font-medium text-gray-900">Total</span>
-          <span className="text-lg font-semibold text-gray-900">
-            ${getTotalPrice().toFixed(2)}
-          </span>
-        </div>
-        
-        <div className="flex justify-between items-center text-sm text-gray-600 mb-4">
-          <span>{getTotalQuantity()} ticket(s)</span>
-          <span>${(getTotalPrice() / getTotalQuantity()).toFixed(2)} per ticket</span>
-        </div>
-      </div>
-
-      {/* Terms and Conditions */}
-      <div className="mb-6">
-        <label className="flex items-start space-x-2">
-          <input
-            type="checkbox"
-            checked={agreeTerms}
-            onChange={(e) => setAgreeTerms(e.target.checked)}
-            className="mt-1 h-4 w-4 text-indigo-600 border-gray-300 rounded focus:ring-indigo-500"
-          />
-          <span className="text-sm text-gray-600">
-            I agree to the{' '}
-            <a href="#" className="text-indigo-600 hover:text-indigo-700 underline">
-              Terms of Service
-            </a>
-            {' '}and{' '}
-            <a href="#" className="text-indigo-600 hover:text-indigo-700 underline">
-              Privacy Policy
-            </a>
-          </span>
-        </label>
-      </div>
-
-      {/* Purchase Button */}
-      <button
-        onClick={handlePurchase}
-        disabled={getTotalQuantity() === 0 || !agreeTerms || isProcessing}
-        className="w-full bg-indigo-600 text-white py-3 px-4 rounded-md font-medium hover:bg-indigo-700 transition-colors duration-200 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center"
-      >
-        {isProcessing ? (
-          <>
-            <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
-            Processing...
-          </>
-        ) : (
-          <>
-            <Check className="h-4 w-4 mr-2" />
-            Purchase Tickets
-          </>
+        {error && (
+          <div className="mt-4 flex items-start gap-2 rounded-xl border border-red-200 bg-red-50 p-3 text-sm text-red-700" role="alert">
+            <AlertCircle className="mt-0.5 h-4 w-4 flex-shrink-0" aria-hidden="true" />
+            <span>{error}</span>
+          </div>
         )}
-      </button>
 
-      {/* Success Message */}
-      {getTotalQuantity() === 0 && (
-        <div className="flex items-center p-3 bg-yellow-50 border border-yellow-200 rounded-md">
-          <AlertCircle className="h-5 w-5 text-yellow-600 mr-2" />
-          <p className="text-sm text-yellow-800">
-            Please select at least one ticket to proceed
+        <div className="mt-5 space-y-2">
+          {!isConfirmed && (
+            <button
+              type="button"
+              onClick={confirmBooking}
+              disabled={confirming}
+              className="inline-flex w-full items-center justify-center gap-2 rounded-xl bg-emerald-600 px-4 py-3 text-sm font-semibold text-white transition hover:bg-emerald-700 disabled:cursor-not-allowed disabled:opacity-60"
+            >
+              {confirming ? (
+                <Loader2 className="h-4 w-4 animate-spin" aria-hidden="true" />
+              ) : (
+                <CreditCard className="h-4 w-4" aria-hidden="true" />
+              )}
+              {confirming ? 'Confirming…' : 'Confirm booking'}
+            </button>
+          )}
+          <Link
+            to="/bookings"
+            className="inline-flex w-full items-center justify-center gap-2 rounded-xl border border-slate-300 px-4 py-3 text-sm font-semibold text-slate-700 transition hover:bg-slate-50"
+          >
+            <Ticket className="h-4 w-4" aria-hidden="true" />
+            View my bookings
+          </Link>
+        </div>
+
+        <p className="mt-4 text-xs leading-5 text-slate-500">
+          This project has no card processor connected. Confirming calls the server
+          and marks the booking as confirmed; no card is charged.
+        </p>
+      </div>
+    );
+  }
+
+  return (
+    <form
+      onSubmit={createBooking}
+      className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm"
+      aria-label={`Book tickets for ${event.title}`}
+    >
+      <div className="flex items-start gap-3">
+        <div className="rounded-xl bg-indigo-50 p-2.5">
+          <Ticket className="h-6 w-6 text-indigo-700" aria-hidden="true" />
+        </div>
+        <div>
+          <h2 className="text-lg font-semibold text-slate-900">Book your tickets</h2>
+          <p className="mt-1 text-sm text-slate-600">{formatPriceLabel(event.price)} per ticket</p>
+        </div>
+      </div>
+
+      <div className="mt-5 space-y-2 text-sm text-slate-600">
+        <p className="flex items-start gap-2">
+          <CalendarDays className="mt-0.5 h-4 w-4 flex-shrink-0 text-slate-400" aria-hidden="true" />
+          <span>{formatDateTime(event.date)}</span>
+        </p>
+        <p className="flex items-start gap-2">
+          <MapPin className="mt-0.5 h-4 w-4 flex-shrink-0 text-slate-400" aria-hidden="true" />
+          <span>{event.location}</span>
+        </p>
+        <p className="flex items-start gap-2">
+          <Users className="mt-0.5 h-4 w-4 flex-shrink-0 text-slate-400" aria-hidden="true" />
+          <span>{event.availableTickets.toLocaleString()} seats available</span>
+        </p>
+      </div>
+
+      {!canBook && (
+        <div className="mt-5 rounded-xl border border-amber-200 bg-amber-50 p-4 text-sm text-amber-900">
+          <p className="flex items-start gap-2">
+            <AlertCircle className="mt-0.5 h-4 w-4 flex-shrink-0" aria-hidden="true" />
+            <span>
+              {event.isPast
+                ? 'This event has already taken place, so bookings are closed.'
+                : 'This event is sold out.'}
+            </span>
           </p>
         </div>
       )}
-    </div>
+
+      {!isAuthenticated ? (
+        <div className="mt-5 rounded-xl border border-indigo-200 bg-indigo-50 p-4">
+          <p className="text-sm text-indigo-900">
+            Sign in to reserve seats for this event.
+          </p>
+          <Link
+            to="/login"
+            state={{ from: location }}
+            className="mt-3 inline-flex items-center justify-center rounded-xl bg-indigo-600 px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-indigo-700"
+          >
+            Sign in to book
+          </Link>
+        </div>
+      ) : (
+        <>
+          <div className="mt-5">
+            <div className="flex items-center justify-between gap-3">
+              <span className="text-sm font-medium text-slate-700">Tickets</span>
+              <div className="flex items-center gap-2">
+                <button
+                  type="button"
+                  onClick={() => changeQuantity(-1)}
+                  disabled={quantity <= 1 || !canBook}
+                  className="inline-flex h-9 w-9 items-center justify-center rounded-full border border-slate-300 text-slate-700 transition hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-40"
+                  aria-label="Remove one ticket"
+                >
+                  <Minus className="h-4 w-4" aria-hidden="true" />
+                </button>
+                <span className="w-8 text-center text-base font-semibold text-slate-900" aria-live="polite">
+                  {quantity}
+                </span>
+                <button
+                  type="button"
+                  onClick={() => changeQuantity(1)}
+                  disabled={quantity >= maxQuantity || !canBook}
+                  className="inline-flex h-9 w-9 items-center justify-center rounded-full border border-slate-300 text-slate-700 transition hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-40"
+                  aria-label="Add one ticket"
+                >
+                  <Plus className="h-4 w-4" aria-hidden="true" />
+                </button>
+              </div>
+            </div>
+            <p className="mt-1 text-xs text-slate-500">
+              Up to {maxQuantity} ticket{maxQuantity === 1 ? '' : 's'} per booking.
+            </p>
+          </div>
+
+          <label className="mt-4 block text-sm">
+            <span className="mb-1 block font-medium text-slate-700">
+              Special requests <span className="font-normal text-slate-500">(optional)</span>
+            </span>
+            <textarea
+              value={specialRequests}
+              onChange={(changeEvent) => setSpecialRequests(changeEvent.target.value)}
+              maxLength={1000}
+              rows={2}
+              className="w-full rounded-xl border border-slate-300 px-3 py-2 text-sm text-slate-800 placeholder-slate-400 focus:border-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-200"
+              placeholder="Accessibility needs, group seating…"
+            />
+          </label>
+
+          <div className="mt-4 flex items-center justify-between gap-3 border-t border-slate-200 pt-4">
+            <span className="text-sm font-medium text-slate-700">Total</span>
+            <span className="text-xl font-bold text-slate-900">{displayTotal}</span>
+          </div>
+
+          <label className="mt-4 flex items-start gap-2 text-sm text-slate-600">
+            <input
+              type="checkbox"
+              checked={accepted}
+              onChange={(changeEvent) => setAccepted(changeEvent.target.checked)}
+              className="mt-1 h-4 w-4 rounded border-slate-300 text-indigo-600 focus:ring-indigo-500"
+            />
+            <span>
+              I understand this reserves seats and that the booking stays pending until I
+              confirm it.
+            </span>
+          </label>
+
+          {error && (
+            <div className="mt-4 flex items-start gap-2 rounded-xl border border-red-200 bg-red-50 p-3 text-sm text-red-700" role="alert">
+              <AlertCircle className="mt-0.5 h-4 w-4 flex-shrink-0" aria-hidden="true" />
+              <span>{error}</span>
+            </div>
+          )}
+
+          <button
+            type="submit"
+            disabled={!canBook || !accepted || submitting}
+            className="mt-4 inline-flex w-full items-center justify-center gap-2 rounded-xl bg-indigo-600 px-4 py-3 text-sm font-semibold text-white transition hover:bg-indigo-700 disabled:cursor-not-allowed disabled:opacity-50"
+          >
+            {submitting ? (
+              <Loader2 className="h-4 w-4 animate-spin" aria-hidden="true" />
+            ) : (
+              <ShieldCheck className="h-4 w-4" aria-hidden="true" />
+            )}
+            {submitting ? 'Reserving seats…' : 'Reserve seats'}
+          </button>
+
+          <p className="mt-3 text-center text-xs text-slate-500">
+            Signed in as {user?.username}.
+          </p>
+        </>
+      )}
+    </form>
   );
 };
 

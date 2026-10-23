@@ -5,7 +5,16 @@ import reactRefresh from 'eslint-plugin-react-refresh'
 import { defineConfig, globalIgnores } from 'eslint/config'
 
 export default defineConfig([
-  globalIgnores(['dist']),
+  globalIgnores([
+    'dist',
+    // Abandoned standalone pages/components that are not imported by App.jsx.
+    // They were already syntactically broken before this work and are kept only
+    // as reference material rather than deleted.
+    'src/pages/UserProfile.jsx',
+    'src/pages/VenueDetail.jsx',
+    'src/pages/EventDetail2.jsx',
+    'src/components/common/DebugPanel.jsx',
+  ]),
   {
     files: ['**/*.{js,jsx}'],
     extends: [
@@ -23,7 +32,7 @@ export default defineConfig([
       },
     },
     rules: {
-      'no-unused-vars': ['error', { varsIgnorePattern: '^[A-Z_]' }],
+      'no-unused-vars': ['error', { varsIgnorePattern: '^[A-Z_]', argsIgnorePattern: '^_' }],
     },
   },
 ])

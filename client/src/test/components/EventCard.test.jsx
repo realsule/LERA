@@ -1,212 +1,88 @@
-import { render, screen, fireEvent } from '@testing-library/react';
-import { BrowserRouter } from 'react-router-dom';
-import { describe, it, expect, vi } from 'vitest';
+import { describe, it, expect } from 'vitest';
+import { MemoryRouter } from 'react-router-dom';
+import { render, screen } from '@testing-library/react';
 import EventCard from '../../components/events/EventCard';
 
-// Mock data for testing
-const mockEvent = {
-  id: '1',
-  title: 'Summer Music Festival 2024',
-  description: 'Experience the best of live music with top artists from around the world.',
-  category: 'concert',
-  date: '2024-07-15',
-  time: '18:00',
-  venue: 'Central Park Arena',
-  ticketTypes: [
-    { name: 'General Admission', price: 75, quantity: 500 },
-    { name: 'VIP Pass', price: 150, quantity: 100 },
-  ],
-  image: 'https://images.unsplash.com/photo-1459749411175-04bf5292ceea?w=400&h=250&fit=crop',
-  organizer: {
-    firstName: 'John',
-    lastName: 'Doe'
-  },
-  totalTickets: 600,
-  availableTickets: 450,
-  ticketsSold: 150,
-  revenue: 15000,
-  rating: 4.5,
-  reviews: 128,
-  tags: ['music', 'festival', 'outdoor']
+const futureDate = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString();
+
+const baseEvent = {
+  id: 42,
+  title: 'Nairobi Jazz Night',
+  description: 'An evening of live jazz from Kenyan artists.',
+  date: futureDate,
+  location: 'Alliance Française, Nairobi',
+  price: 1500,
+  capacity: 200,
+  available_tickets: 80,
+  category: { id: 3, name: 'music' },
+  organizer: { id: 7, username: 'organizer' },
+  average_rating: 4.5,
+  review_count: 12,
 };
 
-// Test wrapper with Router
-const TestWrapper = ({ children }) => (
-  <BrowserRouter>
-    {children}
-  </BrowserRouter>
-);
+const renderCard = (event = baseEvent) =>
+  render(
+    <MemoryRouter>
+      <EventCard event={event} />
+    </MemoryRouter>
+  );
 
-describe('EventCard Component', () => {
-  it('renders event information correctly', () => {
-    render(
-      <TestWrapper>
-        <EventCard event={mockEvent} />
-      </TestWrapper>
+describe('EventCard', () => {
+  it('renders real event details and a KES price', () => {
+    renderCard();
+
+    expect(screen.getByRole('link', { name: 'Nairobi Jazz Night' })).toHaveAttribute(
+      'href',
+      '/events/42'
     );
-
-    // Check basic event info
-    expect(screen.getByText('Summer Music Festival 2024')).toBeInTheDocument();
-    expect(screen.getByText('Experience the best of live music with top artists from around the world.')).toBeInTheDocument();
-    expect(screen.getByText('Central Park Arena')).toBeInTheDocument();
-    expect(screen.getByText('Concert')).toBeInTheDocument();
+    expect(screen.getByText('Alliance Française, Nairobi')).toBeInTheDocument();
+    expect(screen.getByText('KES 1,500')).toBeInTheDocument();
+    expect(screen.getAllByText('Music').length).toBeGreaterThan(0);
+    expect(screen.getByText('80 / 200 available')).toBeInTheDocument();
+    expect(screen.getByText('4.5')).toBeInTheDocument();
+    expect(screen.getByText('(12)')).toBeInTheDocument();
   });
 
-  it('displays correct date and time formatting', () => {
-    render(
-      <TestWrapper>
-        <EventCard event={mockEvent} />
-      </TestWrapper>
-    );
+  it('shows sold out state without offering a price as available', () => {
+    renderCard({ ...baseEvent, available_tickets: 0 });
 
-    // Check date formatting (should show abbreviated date)
-    expect(screen.getByText(/Jul.*15.*6:00 PM/)).toBeInTheDocument();
+    expect(screen.getByText('Sold out')).toBeInTheDocument();
   });
 
-  it('shows correct ticket availability status', () => {
-    render(
-      <TestWrapper>
-        <EventCard event={mockEvent} />
-      </TestWrapper>
-    );
+  it('shows low availability when 15% or fewer seats remain', () => {
+    renderCard({ ...baseEvent, capacity: 100, available_tickets: 10 });
 
-    expect(screen.getByText('Available')).toBeInTheDocument();
-    expect(screen.getByText('450/600 tickets')).toBeInTheDocument();
-    expect(screen.getByText('From $75')).toBeInTheDocument();
+    expect(screen.getByText('Few seats left')).toBeInTheDocument();
   });
 
-  it('displays sold out status correctly', () => {
-    const soldOutEvent = { ...mockEvent, availableTickets: 0 };
-    
-    render(
-      <TestWrapper>
-        <EventCard event={soldOutEvent} />
-      </TestWrapper>
-    );
+  it('marks past events as ended', () => {
+    renderCard({ ...baseEvent, date: '2020-01-01T18:00:00.000Z' });
 
-    expect(screen.getByText('Sold Out')).toBeInTheDocument();
+    expect(screen.getByText('Event ended')).toBeInTheDocument();
   });
 
-  it('displays limited availability status', () => {
-    const limitedEvent = { ...mockEvent, availableTickets: 50, totalTickets: 600 };
-    
-    render(
-      <TestWrapper>
-        <EventCard event={limitedEvent} />
-      </TestWrapper>
+  it('renders a recommendation reason only when supplied', () => {
+    const { rerender } = render(
+      <MemoryRouter>
+        <EventCard event={baseEvent} reason="Because you like music in Nairobi" />
+      </MemoryRouter>
     );
+    expect(screen.getByText('Because you like music in Nairobi')).toBeInTheDocument();
 
-    expect(screen.getByText('Limited')).toBeInTheDocument();
+    rerender(
+      <MemoryRouter>
+        <EventCard event={baseEvent} />
+      </MemoryRouter>
+    );
+    expect(screen.queryByText('Because you like music in Nairobi')).not.toBeInTheDocument();
   });
 
-  it('shows organizer information', () => {
-    render(
-      <TestWrapper>
-        <EventCard event={mockEvent} />
-      </TestWrapper>
+  it('returns nothing for missing event data', () => {
+    const { container } = render(
+      <MemoryRouter>
+        <EventCard event={null} />
+      </MemoryRouter>
     );
-
-    expect(screen.getAllByText('Organizer')).toHaveLength(2);
-  });
-
-  it('displays rating and reviews', () => {
-    render(
-      <TestWrapper>
-        <EventCard event={mockEvent} />
-      </TestWrapper>
-    );
-
-    expect(screen.getAllByText(/4\.5/)).toHaveLength(2);
-    expect(screen.getAllByText(/128 reviews/)).toHaveLength(2);
-  });
-
-  it('shows event tags', () => {
-    render(
-      <TestWrapper>
-        <EventCard event={mockEvent} />
-      </TestWrapper>
-    );
-
-    expect(screen.getByText('music')).toBeInTheDocument();
-    expect(screen.getByText('festival')).toBeInTheDocument();
-    expect(screen.getByText('outdoor')).toBeInTheDocument();
-  });
-
-  it('renders action buttons when showActions is true', () => {
-    render(
-      <TestWrapper>
-        <EventCard event={mockEvent} showActions={true} />
-      </TestWrapper>
-    );
-
-    expect(screen.getByText('View Details')).toBeInTheDocument();
-    expect(screen.getAllByRole('button', { name: /Add to favorites/i })).toHaveLength(2);
-    expect(screen.getAllByRole('button', { name: /Share event/i })).toHaveLength(2);
-  });
-
-  it('hides action buttons when showActions is false', () => {
-    render(
-      <TestWrapper>
-        <EventCard event={mockEvent} showActions={false} />
-      </TestWrapper>
-    );
-
-    expect(screen.getByText('View Details')).toBeInTheDocument();
-    expect(screen.queryAllByRole('button', { name: /Add to favorites/i })).toHaveLength(0);
-    expect(screen.queryAllByRole('button', { name: /Share event/i })).toHaveLength(0);
-  });
-
-  it('has correct link to event detail page', () => {
-    render(
-      <TestWrapper>
-        <EventCard event={mockEvent} />
-      </TestWrapper>
-    );
-
-    const viewDetailsLink = screen.getByText('View Details');
-    expect(viewDetailsLink.closest('a')).toHaveAttribute('href', '/events/1');
-  });
-
-  it('handles missing data gracefully', () => {
-    const incompleteEvent = {
-      id: '2',
-      title: 'Incomplete Event',
-      description: 'Missing some data',
-      category: 'workshop',
-      date: '2024-08-20',
-      time: '14:00',
-      venue: 'Test Venue',
-      totalTickets: 100,
-      availableTickets: 80,
-    };
-
-    render(
-      <TestWrapper>
-        <EventCard event={incompleteEvent} />
-      </TestWrapper>
-    );
-
-    expect(screen.getByText('Incomplete Event')).toBeInTheDocument();
-    expect(screen.getByText('Test Venue')).toBeInTheDocument();
-    expect(screen.getByText('From $0')).toBeInTheDocument(); // Default price when no ticket types
-  });
-
-  it('calculates lowest price correctly', () => {
-    const multiPriceEvent = {
-      ...mockEvent,
-      ticketTypes: [
-        { name: 'Early Bird', price: 25, quantity: 100 },
-        { name: 'Regular', price: 50, quantity: 200 },
-        { name: 'VIP', price: 100, quantity: 50 },
-      ],
-    };
-
-    render(
-      <TestWrapper>
-        <EventCard event={multiPriceEvent} />
-      </TestWrapper>
-    );
-
-    expect(screen.getByText('From $25')).toBeInTheDocument();
+    expect(container).toBeEmptyDOMElement();
   });
 });

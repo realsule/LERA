@@ -1,255 +1,197 @@
 import axios from 'axios';
 
 /**
- * API Service Configuration
- * 
- * Centralized HTTP client configuration for all API communications.
- * Uses Axios with interceptors for authentication and error handling.
- * 
- * Environment Configuration:
- * - VITE_API_URL: Direct backend URL (set in netlify.toml for local dev)
- * - Fallback to '/api': Uses Vite proxy for development
- * 
- * Features:
- * - Automatic JWT token injection
- * - Centralized error handling
- * - Request/response interceptors
- * - Timeout protection
- * - Content-Type headers
+ * Resolve the API location from Vite environment variables.
+ *
+ * Supported forms:
+ *   VITE_API_BASE_URL=/api
+ *   VITE_API_BASE_URL=http://localhost:5555        -> http://localhost:5555/api
+ *   VITE_API_BASE_URL=https://api.example.com/api
+ *
+ * The legacy VITE_API_URL name is still accepted so existing deployments do
+ * not break. No secret is ever read from the frontend environment.
  */
+export function resolveApiBaseUrl() {
+  const raw = (
+    import.meta.env.VITE_API_BASE_URL ||
+    import.meta.env.VITE_API_URL ||
+    '/api'
+  ).trim();
 
-// Create axios instance with base configuration
+  if (!raw) return '/api';
+
+  if (/^https?:\/\//i.test(raw)) {
+    const url = new URL(raw);
+    if (!url.pathname || url.pathname === '/') {
+      url.pathname = '/api';
+    }
+    return url.toString().replace(/\/+$/, '');
+  }
+
+  return raw.replace(/\/+$/, '');
+}
+
+export const API_BASE_URL = resolveApiBaseUrl();
+
 const api = axios.create({
-  // Use VITE_API_URL from netlify.toml or fallback to proxy
-  // netlify.toml sets VITE_API_URL=http://127.0.0.1:5000 for local development
-  // In production, this should point to your actual API server
-  baseURL: import.meta.env.VITE_API_URL || '/api',
-  timeout: 10000, // 10 second timeout for all requests
+  baseURL: API_BASE_URL,
+  // Flask session authentication is carried in an HttpOnly cookie.
+  withCredentials: true,
+  timeout: 15000,
   headers: {
     'Content-Type': 'application/json',
+    Accept: 'application/json',
   },
 });
 
-/**
- * Request Interceptor
- * 
- * Automatically adds JWT authentication token to all outgoing requests.
- * Token is retrieved from localStorage and added as Bearer token in Authorization header.
- * 
- * This ensures authenticated endpoints receive proper credentials without
- * manual token management in each API call.
- */
-api.interceptors.request.use(
-  (config) => {
-    const token = localStorage.getItem('token');
-    if (token) {
-      config.headers.Authorization = `Bearer ${token}`;
-    }
-    return config;
-  },
-  (error) => {
-    // Log request errors for debugging
-    console.error('Request interceptor error:', error);
-    return Promise.reject(error);
+export function normalizeApiError(error) {
+  if (axios.isCancel?.(error) || error?.code === 'ERR_CANCELED') {
+    const cancelled = new Error('Request cancelled');
+    cancelled.isCanceled = true;
+    return cancelled;
   }
-);
 
-/**
- * Response Interceptor
- * 
- * Handles common HTTP errors and provides automatic responses for authentication failures.
- * 
- * Error Handling:
- * - 401 Unauthorized: Clear auth data and redirect to login
- * - 403 Forbidden: Redirect to unauthorized page
- * - Network errors: Provide user-friendly error messages
- * 
- * This centralizes error handling and ensures consistent user experience
- * across all API interactions.
- */
+  if (error?.isCanceled) return error;
+
+  const response = error?.response;
+  const payload = response?.data;
+  let message = 'Something went wrong. Please try again.';
+
+  if (payload) {
+    if (typeof payload === 'string') {
+      message = payload;
+    } else if (payload.error) {
+      message = String(payload.error);
+    } else if (payload.message) {
+      message = String(payload.message);
+    } else if (payload.details && typeof payload.details === 'object') {
+      const firstDetail = Object.values(payload.details)[0];
+      if (firstDetail) message = String(firstDetail);
+    }
+  } else if (error?.code === 'ECONNABORTED') {
+    message = 'The request timed out. Please try again.';
+  } else if (!response) {
+    message = 'Cannot reach the LERA API. Check that the backend is running and try again.';
+  } else if (response.status >= 500) {
+    message = 'The server could not complete this request. Please try again later.';
+  } else if (error?.message) {
+    message = error.message;
+  }
+
+  const normalized = new Error(message);
+  normalized.status = response?.status ?? null;
+  normalized.code = payload?.code;
+  normalized.details = payload?.details;
+  normalized.isNetworkError = !response;
+  normalized.isTimeout = error?.code === 'ECONNABORTED';
+  normalized.response = response;
+  return normalized;
+}
+
+api.interceptors.request.use((config) => config);
+
 api.interceptors.response.use(
-  (response) => {
-    // Successful responses pass through unchanged
-    return response;
-  },
+  (response) => response,
   (error) => {
-    // Handle 401 Unauthorized - token expired or invalid
-    if (error.response?.status === 401) {
-      console.warn('Authentication failed - clearing session');
-      localStorage.removeItem('token');
-      localStorage.removeItem('user');
-      window.location.href = '/login';
+    const normalized = normalizeApiError(error);
+    if (normalized.status === 401 && !error?.config?.skipAuthRedirect) {
+      // AuthContext listens for this event and clears the UI state. We do not
+      // force a full page reload, which previously caused redirect loops.
+      window.dispatchEvent(new CustomEvent('lera:unauthorized'));
     }
-    
-    // Handle 403 Forbidden - insufficient permissions
-    if (error.response?.status === 403) {
-      console.warn('Access forbidden - insufficient permissions');
-      window.location.href = '/unauthorized';
-    }
-    
-    // Handle network errors (no response from server) - Server is offline
-    if (!error.response) {
-      console.error('Network Error - Server appears to be offline:', error.message);
-      error.isServerOffline = true;
-      error.message = 'Server is under maintenance. Please try again later.';
-    }
-    
-    return Promise.reject(error);
+    return Promise.reject(normalized);
   }
 );
 
-// Mock data for emergency presentation mode
-const mockEvents = [
-  {
-    id: 1,
-    title: 'Summer Music Festival 2024',
-    description: 'Join us for an unforgettable night of live music featuring top artists from around the world. Experience the magic of summer with amazing performances, food vendors, and festival activities.',
-    date: '2024-07-15T19:00:00Z',
-    location: 'Central Park Arena, New York',
-    price: 9500.00, // KES equivalent of $75 USD
-    capacity: 5000,
-    category: 'concert',
-    image: 'https://images.unsplash.com/photo-1459749411177-042180ceea72?q=80&w=1000&auto=format&fit=crop',
-    organizer: { firstName: 'Event', lastName: 'Organizer' },
-    totalTickets: 5000,
-    availableTickets: 4000,
-    rating: 4.8,
-    reviews: 256
-  },
-  {
-    id: 2,
-    title: 'Tech Innovation Summit',
-    description: 'Connect with industry leaders and discover cutting-edge technologies that are shaping our future. Network with professionals, attend workshops, and gain insights into the latest tech trends.',
-    date: '2024-08-20T09:00:00Z',
-    location: 'Convention Center, San Francisco',
-    price: 37800.00, // KES equivalent of $299 USD
-    capacity: 1000,
-    category: 'conference',
-    image: 'https://images.unsplash.com/photo-1540575861501-7ad05823c951?q=80&w=1000&auto=format&fit=crop',
-    organizer: { firstName: 'Tech', lastName: 'Events' },
-    totalTickets: 1000,
-    availableTickets: 750,
-    rating: 4.9,
-    reviews: 189
-  },
-  {
-    id: 3,
-    title: 'Marathon Championship',
-    description: 'Challenge yourself in this exciting marathon event for all fitness levels. Professional timing, medals, and a celebration at the finish line await all participants.',
-    date: '2024-09-10T07:00:00Z',
-    location: 'City Stadium, Chicago, IL',
-    price: 6300.00, // KES equivalent of $50 USD
-    capacity: 2000,
-    category: 'sports',
-    image: 'https://images.unsplash.com/photo-1452626038306-9aae5e071dd3?q=80&w=1000&auto=format&fit=crop',
-    organizer: { firstName: 'Sports', lastName: 'Plus' },
-    totalTickets: 2000,
-    availableTickets: 1800,
-    rating: 4.7,
-    reviews: 142
-  }
-];
+const request = (config) => api.request(config).then((response) => response.data);
 
-// Emergency presentation mode flag
-const isEmergencyMode = false; // Set to true for presentation, false for normal API calls
-
-// API service methods
 export const authAPI = {
-  login: (credentials) => {
-    if (isEmergencyMode) {
-      return new Promise((resolve, reject) => {
-        setTimeout(() => {
-          if (credentials.email === 'demo@example.com' && credentials.password === 'Demo123!') {
-            resolve({ 
-              data: { 
-                success: true, 
-                user: { name: 'Demo User', email: 'demo@example.com' },
-                token: 'mock-jwt-token-for-presentation'
-              } 
-            });
-          } else {
-            reject({ 
-              response: { data: { error: 'Invalid credentials' } }
-            });
-          }
-        }, 500); // Simulate network delay
-      });
-    }
-    return api.post('/auth/login', credentials);
-  },
-  register: (userData) => api.post('/auth/register', userData),
-  verify: () => api.get('/auth/me'), // Backend uses /auth/me for current user
-  refreshToken: () => api.post('/auth/refresh'),
-  logout: () => api.post('/auth/logout'),
-  forgotPassword: (email) => api.post('/auth/forgot-password', { email }),
-  resetPassword: (token, password) => api.post('/auth/reset-password', { token, password }),
+  login: (credentials) =>
+    request({
+      url: '/auth/login',
+      method: 'POST',
+      data: credentials,
+      skipAuthRedirect: true,
+    }),
+  register: (userData) =>
+    request({
+      url: '/auth/register',
+      method: 'POST',
+      data: userData,
+      skipAuthRedirect: true,
+    }),
+  me: () =>
+    request({
+      url: '/auth/me',
+      method: 'GET',
+      skipAuthRedirect: true,
+    }),
+  logout: () => request({ url: '/auth/logout', method: 'POST' }),
 };
 
 export const eventsAPI = {
-  getAll: (params) => {
-    if (isEmergencyMode) {
-      return new Promise((resolve) => {
-        setTimeout(() => {
-          resolve({ data: mockEvents });
-        }, 300); // Simulate network delay
-      });
-    }
-    return api.get('/api/events/', { params });
-  },
-  getById: (id) => {
-    if (isEmergencyMode) {
-      return new Promise((resolve, reject) => {
-        setTimeout(() => {
-          const event = mockEvents.find(e => e.id === parseInt(id));
-          if (event) {
-            resolve({ data: event });
-          } else {
-            reject({ response: { data: { error: 'Event not found' } } });
-          }
-        }, 300);
-      });
-    }
-    return api.get(`/api/events/${id}/`);
-  },
-  create: (eventData) => api.post('/api/events/', eventData),
-  update: (id, eventData) => api.put(`/api/events/${id}/`, eventData),
-  delete: (id) => api.delete(`/api/events/${id}/`),
-  getMyEvents: () => api.get('/api/events/my-events/'),
+  getAll: (params = {}, config = {}) =>
+    request({ url: '/events/', method: 'GET', params, ...config }),
+  getById: (id, config = {}) =>
+    request({ url: `/events/${id}`, method: 'GET', ...config }),
+  create: (eventData) =>
+    request({ url: '/events/', method: 'POST', data: eventData }),
+  update: (id, eventData) =>
+    request({ url: `/events/${id}`, method: 'PUT', data: eventData }),
+  delete: (id) => request({ url: `/events/${id}`, method: 'DELETE' }),
+  getMyEvents: (params = {}) =>
+    request({ url: '/events/my-events', method: 'GET', params }),
 };
 
-export const ticketsAPI = {
-  purchase: (ticketData) => api.post('/tickets/purchase', ticketData),
-  getMyTickets: () => api.get('/tickets/my-tickets'),
-  getById: (id) => api.get(`/tickets/${id}`),
-  cancel: (id) => api.post(`/tickets/${id}/cancel`),
+export const categoriesAPI = {
+  getAll: (config = {}) =>
+    request({ url: '/categories/', method: 'GET', ...config }),
 };
 
-export const usersAPI = {
-  getProfile: () => api.get('/users/profile'),
-  updateProfile: (userData) => api.put('/users/profile', userData),
-  changePassword: (passwordData) => api.put('/users/change-password', passwordData),
-  getAll: (params) => api.get('/users', { params }),
-  getById: (id) => api.get(`/users/${id}`),
-  update: (id, userData) => api.put(`/users/${id}`, userData),
-  delete: (id) => api.delete(`/users/${id}`),
+export const bookingsAPI = {
+  create: (bookingData) =>
+    request({ url: '/bookings/', method: 'POST', data: bookingData }),
+  getAll: (config = {}) =>
+    request({ url: '/bookings/', method: 'GET', ...config }),
+  getById: (id) => request({ url: `/bookings/${id}`, method: 'GET' }),
+  cancel: (id) => request({ url: `/bookings/${id}`, method: 'DELETE' }),
 };
 
-/**
- * Health Check API
- * 
- * Checks the backend server health status.
- * This function is called on app load to verify backend connectivity.
- */
+export const paymentsAPI = {
+  // The backend has no card processor connected: this marks a pending booking
+  // as confirmed and never charges a card.
+  pay: (bookingId) =>
+    request({ url: '/payments/process', method: 'POST', data: { booking_id: bookingId } }),
+};
+
+export const recommendationsAPI = {
+  get: (params = {}, config = {}) =>
+    request({ url: '/recommendations', method: 'GET', params, ...config }),
+};
+
+export const reviewsAPI = {
+  getForEvent: (eventId, config = {}) =>
+    request({ url: `/reviews/event/${eventId}`, method: 'GET', ...config }),
+  create: (review) =>
+    request({ url: '/reviews/', method: 'POST', data: review }),
+};
+
+export const adminAPI = {
+  getUsers: () => request({ url: '/admin/users', method: 'GET' }),
+  getEvents: () => request({ url: '/admin/events', method: 'GET' }),
+  getAnalytics: () => request({ url: '/admin/analytics', method: 'GET' }),
+};
+
 export const checkHealth = async () => {
-  if (isEmergencyMode) {
-    return { status: 'healthy', data: { message: 'Mock mode active' } };
-  }
   try {
-    const response = await api.get('/api/health');
-    console.log('✅ Backend Health Status:', response.data);
-    return { status: 'healthy', data: response.data };
+    const data = await request({
+      url: '/health',
+      method: 'GET',
+      timeout: 5000,
+      skipAuthRedirect: true,
+    });
+    return { status: 'healthy', data };
   } catch (error) {
-    console.error('❌ Backend Health Check Failed:', error.message);
     return { status: 'unhealthy', error: error.message };
   }
 };

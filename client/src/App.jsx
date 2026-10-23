@@ -1,5 +1,5 @@
-import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
-import { useEffect } from 'react';
+import React, { useEffect } from 'react';
+import { BrowserRouter as Router, Routes, Route, useLocation } from 'react-router-dom';
 import { AuthProvider } from './context/AuthContext';
 import ErrorBoundary from './components/common/ErrorBoundary';
 import Navbar from './components/common/Navbar';
@@ -7,81 +7,83 @@ import Footer from './components/common/Footer';
 import Home from './pages/Home';
 import Events from './pages/Events';
 import EventDetail from './pages/EventDetail';
+import EventForm from './pages/EventForm';
+import Bookings from './pages/Bookings';
 import Dashboard from './pages/Dashboard';
 import Login from './pages/Login';
+import Register from './pages/Register';
 import About from './pages/About';
 import Unauthorized from './pages/Unauthorized';
+import NotFound from './pages/NotFound';
 import ProtectedRoute from './layout/ProtectedRoute';
-import { checkHealth } from './services/api';
 
-/**
- * Main App Component
- * 
- * This is the root component of the LERA frontend application.
- * It sets up the entire application structure including:
- * - React Router for navigation
- * - Authentication context for user state management
- * - Error boundaries for graceful error handling
- * - Layout components (Navbar, Footer)
- * - Route definitions for all pages
- * 
- * The component follows a hierarchical structure:
- * Router > ErrorBoundary > AuthProvider > Layout > Routes
- * 
- * Router wraps everything to provide routing context
- * ErrorBoundary catches and handles component errors
- * AuthProvider provides authentication state throughout the app
- * ProtectedRoute components guard routes that require authentication
- */
+function ScrollToTop() {
+  const { pathname } = useLocation();
+  useEffect(() => {
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  }, [pathname]);
+  return null;
+}
 
 function App() {
-  // Check backend health on app load
-  useEffect(() => {
-    checkHealth().catch((error) => {
-      // Silently handle health check errors - Footer will show status
-      console.warn('Initial health check failed:', error);
-    });
-  }, []);
-
   return (
-    // Router must wrap providers/components that use react-router hooks.
-    // This ensures useNavigate, useParams, etc. work throughout the app.
     <Router>
       <ErrorBoundary>
-        {/* AuthProvider is app-wide; ProtectedRoute enforces auth/roles where needed */}
         <AuthProvider>
-          <div className="min-h-screen bg-gray-50 flex flex-col">
+          <ScrollToTop />
+          <div className="flex min-h-screen flex-col bg-slate-50">
             <Navbar />
-            <main className="flex-grow container mx-auto px-4 py-8">
+            <main id="main-content" className="flex-grow">
               <Routes>
-                {/* Public routes - accessible to all users */}
                 <Route path="/" element={<Home />} />
                 <Route path="/about" element={<About />} />
                 <Route path="/events" element={<Events />} />
                 <Route path="/events/:id" element={<EventDetail />} />
                 <Route path="/login" element={<Login />} />
+                <Route path="/register" element={<Register />} />
                 <Route path="/unauthorized" element={<Unauthorized />} />
-                
-                {/* Protected Routes for IAM Requirements */}
-                {/* These routes require authentication and specific user roles */}
+
+                <Route
+                  path="/events/create"
+                  element={
+                    <ProtectedRoute roles={['organizer', 'admin']}>
+                      <EventForm mode="create" />
+                    </ProtectedRoute>
+                  }
+                />
+                <Route
+                  path="/events/:id/edit"
+                  element={
+                    <ProtectedRoute roles={['organizer', 'admin']}>
+                      <EventForm mode="edit" />
+                    </ProtectedRoute>
+                  }
+                />
+                <Route
+                  path="/bookings"
+                  element={
+                    <ProtectedRoute roles={['attendee', 'organizer', 'admin']}>
+                      <Bookings />
+                    </ProtectedRoute>
+                  }
+                />
                 <Route
                   path="/dashboard"
                   element={
-                    <ProtectedRoute roles={['admin', 'organizer', 'attendee']}>
+                    <ProtectedRoute roles={['attendee', 'organizer', 'admin']}>
                       <Dashboard />
                     </ProtectedRoute>
                   }
                 />
-                
-                {/* Admin-only routes - highest privilege level */}
                 <Route
                   path="/admin"
                   element={
                     <ProtectedRoute roles={['admin']}>
-                      <Dashboard />
+                      <Dashboard adminView />
                     </ProtectedRoute>
                   }
                 />
+                <Route path="*" element={<NotFound />} />
               </Routes>
             </main>
             <Footer />
@@ -90,6 +92,6 @@ function App() {
       </ErrorBoundary>
     </Router>
   );
-};
+}
 
 export default App;

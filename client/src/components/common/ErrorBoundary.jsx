@@ -20,7 +20,7 @@ class ErrorBoundary extends React.Component {
     };
   }
 
-  static getDerivedStateFromError(error) {
+  static getDerivedStateFromError(_error) {
     // Update state so the next render will show the fallback UI
     return { 
       hasError: true,
@@ -75,7 +75,7 @@ class ErrorBoundary extends React.Component {
               </p>
               
               {/* Error Details for Development */}
-              {process.env.NODE_ENV === 'development' && (
+              {import.meta.env.DEV && (
                 <details className="text-left mb-6 p-4 bg-gray-100 rounded-lg">
                   <summary className="cursor-pointer font-medium text-gray-900 mb-2">
                     Error Details (Development Only)
