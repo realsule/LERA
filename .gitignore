@@ -1,0 +1,40 @@
+# Dependencies
+node_modules/
+
+# Build output
+dist/
+build/
+coverage/
+
+# Local virtual environments
+.venv/
+.venv-*/
+venv/
+
+# Python caches
+__pycache__/
+*.py[cod]
+.pytest_cache/
+
+# Local databases
+*.db
+*.sqlite
+*.sqlite3
+backend/instance/
+
+# Logs and local runtime files
+*.log
+logs/
+pids/
+*.pid
+
+# Editable environment files. Tracked .env.example files are still allowed.
+.env
+.env.local
+.env.*.local
+
+# Editor and OS files
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db

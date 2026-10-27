@@ -1,4 +1,5 @@
 from sqlalchemy_serializer import SerializerMixin
+
 from .user import db
 
 
@@ -25,13 +26,27 @@ class Booking(db.Model, SerializerMixin):
     )
 
     def to_dict(self):
+        event = self.event
         return {
             'id': self.id,
+            'reference': f'LERA-{self.id:06d}' if self.id else None,
             'user_id': self.user_id,
             'event_id': self.event_id,
             'tickets_count': self.tickets_count,
             'total_price': self.total_price,
             'status': self.status,
             'special_requests': self.special_requests,
-            'created_at': self.created_at.isoformat() if self.created_at else None
+            'created_at': self.created_at.isoformat() if self.created_at else None,
+            'event': {
+                'id': event.id,
+                'title': event.title,
+                'date': event.date.isoformat() if event.date else None,
+                'location': event.location,
+                'price': event.price,
+                'image_url': event.image_url,
+                'category': (
+                    {'id': event.category.id, 'name': event.category.name}
+                    if event.category else None
+                ),
+            } if event else None,
         }

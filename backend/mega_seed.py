@@ -18,13 +18,18 @@ import os
 from datetime import datetime, timedelta
 import random
 
+if hasattr(sys.stdout, 'reconfigure'):
+    sys.stdout.reconfigure(encoding='utf-8')
+
 # Add backend directory to Python path
 backend_dir = os.path.abspath(os.path.dirname(__file__))
 if backend_dir not in sys.path:
     sys.path.insert(0, backend_dir)
 
 from server.app import create_app
-from models import db, User, Event, Category
+from models import db, User, Event, Category, Booking, Review
+
+random.seed(42)
 
 def seed_database():
     """Seed the database with large-scale test data"""
@@ -33,8 +38,11 @@ def seed_database():
     with app.app_context():
         print("🌱 Starting mega database seeding...")
         
-        # Clear existing data (optional - comment out to keep existing data)
+        # Clear existing demo data. Bookings and reviews are removed first so
+        # that no orphaned rows remain after the bulk event delete.
         print("🗑️  Clearing existing data...")
+        Booking.query.delete()
+        Review.query.delete()
         Event.query.delete()
         User.query.filter(User.email.like('%@lera.com')).delete()
         Category.query.delete()
@@ -311,7 +319,72 @@ def seed_database():
         
         db.session.commit()
         print(f"✅ Created {len(created_events)} events")
-        
+
+        # Create a few real bookings and reviews so ratings and popularity
+        # metrics in the recommendations are backed by database records.
+        print("🎫 Creating demo bookings...")
+        attendees = [
+            created_users.get('attendee1@lera.com'),
+            created_users.get('attendee2@lera.com'),
+            created_users.get('attendee3@lera.com'),
+        ]
+        attendees = [user for user in attendees if user]
+        booking_plan = [
+            (0, 0, 2, 'confirmed'),
+            (1, 1, 1, 'confirmed'),
+            (3, 2, 3, 'confirmed'),
+            (4, 0, 1, 'pending'),
+            (6, 1, 2, 'confirmed'),
+            (7, 2, 1, 'confirmed'),
+            (9, 0, 4, 'confirmed'),
+            (10, 1, 1, 'pending'),
+        ]
+        if attendees and created_events:
+            for event_index, user_index, tickets, status in booking_plan:
+                if event_index >= len(created_events):
+                    continue
+                event = created_events[event_index]
+                booking = Booking(
+                    user_id=attendees[user_index % len(attendees)].id,
+                    event_id=event.id,
+                    tickets_count=tickets,
+                    total_price=round((event.price or 0) * tickets, 2),
+                    status=status,
+                )
+                event.reserved_seats += tickets
+                db.session.add(booking)
+            db.session.commit()
+        print("✅ Demo bookings created")
+
+        print("⭐ Creating demo reviews...")
+        review_plan = [
+            (0, 0, 5, 'Amazing event and a great atmosphere.'),
+            (0, 1, 4, 'Well organised and worth the ticket price.'),
+            (1, 2, 5, 'Excellent speakers and useful workshops.'),
+            (3, 1, 4, 'A memorable night of live music.'),
+            (4, 2, 5, 'Hands-on and practical. Highly recommended.'),
+            (7, 0, 4, 'Made useful connections at the mixer.'),
+        ]
+        if attendees and created_events:
+            seen = set()
+            for event_index, user_index, rating, comment in review_plan:
+                if event_index >= len(created_events):
+                    continue
+                event = created_events[event_index]
+                user = attendees[user_index % len(attendees)]
+                key = (event.id, user.id)
+                if key in seen:
+                    continue
+                seen.add(key)
+                db.session.add(Review(
+                    user_id=user.id,
+                    event_id=event.id,
+                    rating=rating,
+                    comment=comment,
+                ))
+            db.session.commit()
+        print("✅ Demo reviews created")
+
         # Verification
         print("\n" + "="*60)
         print("📊 MEGA SEEDING VERIFICATION")

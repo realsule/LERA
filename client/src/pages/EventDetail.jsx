@@ -25,7 +25,6 @@ import {
   categoryLabel,
   formatDateTime,
   formatPriceLabel,
-  formatShortDate,
   formatTime,
   normalizeEvent,
 } from '../utils/format';

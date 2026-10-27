@@ -41,14 +41,17 @@ class User(db.Model, SerializerMixin):
         return self.role == 'admin'
 
     def is_organizer(self):
-        return self.role == 'organizer'
+        return self.role in {'organizer', 'admin'}
 
     # Optional serializer override
     def to_dict(self):
+        # Older seed scripts used the role "user"; expose it as "attendee" so
+        # the frontend has one consistent set of role names.
+        role = 'attendee' if self.role == 'user' else self.role
         return {
             'id': self.id,
             'username': self.username,
             'email': self.email,
-            'role': self.role,
+            'role': role,
             'created_at': self.created_at.isoformat() if self.created_at else None
         }
