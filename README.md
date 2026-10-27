@@ -57,6 +57,11 @@ The app runs at `http://localhost:5173` and proxies `/api/*` to
 > `--legacy-peer-deps` is required because `react-helmet-async@2.0.5` declares a
 > peer dependency on React 18 while this project uses React 19.
 
+After both dependency installs, you can start the API and frontend together from
+the repository root with `npm run dev`. The runner also handles WSL when the
+dependencies were installed on Windows; see
+[RUN_GUIDE.md](RUN_GUIDE.md#wsl-reports-python-not-found-or-a-missing-rollup-package).
+
 ### Demo accounts (after `mega_seed.py`)
 
 | Role | Email | Password |

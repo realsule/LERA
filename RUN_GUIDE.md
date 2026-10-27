@@ -8,6 +8,33 @@ This guide covers local development on Windows, macOS and Linux.
 - Node.js 20+ and npm
 - Git
 
+## Quick start (both servers)
+
+After the backend and frontend dependencies are installed, run this from the
+repository root:
+
+```powershell
+npm run dev
+```
+
+This starts the Flask API on `http://localhost:5555` and Vite on
+`http://localhost:5173`. Use `npm run backend` or `npm run frontend` to start
+only one process.
+
+The runner (`scripts/dev.mjs`) is cross-platform:
+
+- On Windows it uses `backend/.venv/Scripts/python.exe` and `npm.cmd`.
+- On native macOS/Linux it uses `backend/.venv/bin/python` (or `python3`) and
+  `npm`.
+- In WSL, if it finds the Windows virtual environment, it launches the Windows
+  processes through `cmd.exe` interop. This avoids the `python: not found` and
+  `@rollup/rollup-linux-x64-gnu` errors caused by mixing a Windows venv and
+  `node_modules` with Linux Node.
+
+Do not run Windows-installed `client/node_modules` with Linux Node manually. To
+use a fully native Linux/WSL setup instead, create `backend/.venv` with Linux
+Python and reinstall `client/node_modules` inside WSL, then run `npm run dev`.
+
 ## 1. Backend Setup
 
 ```powershell
@@ -103,6 +130,9 @@ independently.
 
 | Task | Command |
 | --- | --- |
+| Start API + Vite (repo root) | `npm run dev` |
+| Start API only (repo root) | `npm run backend` |
+| Start Vite only (repo root) | `npm run frontend` |
 | Backend tests | `cd backend && .\.venv\Scripts\python.exe -m unittest discover -s tests -v` |
 | Frontend tests | `cd client && npm.cmd run test:run` |
 | Frontend lint | `cd client && npm.cmd run lint` |
@@ -165,6 +195,24 @@ Backend production checklist:
 ### PowerShell blocks `npm`
 
 Use `npm.cmd` in this environment, or adjust the execution policy for your user.
+
+### WSL reports `python: not found` or a missing Rollup package
+
+This means the command is mixing Linux Node/Python with dependencies installed
+on Windows. From the repository root, use:
+
+```bash
+npm run dev
+```
+
+The runner detects the Windows virtual environment and uses Windows interop
+automatically. Alternatively, run `npm run dev` from PowerShell. For a fully
+native WSL setup, install a Linux venv in `backend/.venv` and reinstall
+`client/node_modules` inside WSL instead of reusing the Windows install.
+
+Do not run `npm install` inside WSL and then continue using the same
+`client/node_modules` from Windows. Platform-specific packages such as Rollup
+must match the OS that runs the dev server.
 
 ### Database schema errors after pulling changes
 

@@ -119,6 +119,11 @@ Required backend variables and frontend variables are documented in
 ## Commands
 
 ```powershell
+# Both servers from the repository root
+npm run dev
+npm run backend
+npm run frontend
+
 # Backend
 cd backend
 .\.venv\Scripts\python.exe mega_seed.py
@@ -132,3 +137,7 @@ npm.cmd run test:run
 npm.cmd run lint
 npm.cmd run build
 ```
+
+In WSL, `npm run dev` detects a Windows-installed venv and `node_modules` and
+uses Windows interop. Do not mix Windows and Linux dependency installs in the
+same `node_modules` directory.
